@@ -6883,7 +6883,7 @@ void sliceTimingXA(struct TDCMsort *dcmSort, struct TDICOMdata *dcmList, struct 
 		return;
 	} else if (nConvert > hdr->dim[4]) {
 		// XA enhanced DICOM saves 1 file per 3D volume, classic DICOM saves multiple volumes
-		printWarning("4D Siemens XA images should be exported as enhanced not classic DICOM. Slice times and other properties may be inaccurate %d.\n");
+		printWarning("4D Siemens XA images should be exported as enhanced not classic DICOM. Slice times and other properties may be inaccurate.\n");
 	}
 	if ((nConvert == (hdr->dim[3] * hdr->dim[4])) && (hdr->dim[3] < (kMaxEPI3D - 1)) && (hdr->dim[3] > 1)) {
 		// issue875 use 2nd volume
