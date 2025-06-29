@@ -26,9 +26,30 @@ endif
 
 #run "make" for default build
 #run "JPEGLS=1 make" for JPEGLS build
-JFLAGS=
-ifeq "$(JPEGLS)" "1"
-	JFLAGS=-std=c++14 -DmyEnableJPEGLS  charls/jpegls.cpp charls/jpegmarkersegment.cpp charls/interface.cpp  charls/jpegstreamwriter.cpp charls/jpegstreamreader.cpp
+#run "JPEGLS=2 make" for JPEGLS build with system CharLS
+# JPEGLS=0 : disable JPEG-LS
+# JPEGLS=1 : use local ./charls source files
+# JPEGLS=2 : use system-installed CharLS via pkg-config
+
+ifeq ($(JPEGLS),1)
+	CFLAGS += -DmyEnableJPEGLS
+	CHARLS_SRCS = charls/jpegls.cpp charls/jpegmarkersegment.cpp charls/interface.cpp \
+								charls/jpegstreamwriter.cpp charls/jpegstreamreader.cpp
+	CFILES := $(CHARLS_SRCS) $(CFILES)
+endif
+
+ifeq ($(JPEGLS),2)
+	CFLAGS += -DmyEnableJPEGLS
+	CHARLS_CFLAGS := $(shell pkg-config --cflags charls 2>/dev/null)
+	CHARLS_LIBS := $(shell pkg-config --libs charls 2>/dev/null)
+	ifeq ($(CHARLS_CFLAGS),)
+		CHARLS_CFLAGS := -I/usr/include -I/opt/homebrew/include
+	endif
+	ifeq ($(CHARLS_LIBS),)
+		CHARLS_LIBS := -lcharls -L/usr/lib -L/opt/homebrew/lib
+	endif
+	CFLAGS += $(CHARLS_CFLAGS)
+	CFILES += $(CHARLS_LIBS)
 endif
 
 #run "JNIfTI=0 make" to disable JNIFTI build

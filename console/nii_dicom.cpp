@@ -5313,7 +5313,9 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 			lPos = lPos + 4;
 			// https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_8.2.html
 			// detect and skip  Basic Offset Table
-			bool  isBasicOffsetTable = (d.imageBytes < 1) && ((lLength == 4 * numberOfFrames) || (lLength <= 0));
+			bool isBasicOffsetTable = (d.imageBytes < 1) && ((lLength == 4 * numberOfFrames) || (lLength <= 0));
+			if ((numberOfFrames < 2) && (lLength == 4))
+				isBasicOffsetTable = true;
 			if (lLength == 0xFFFFFFFF) {
 				// printf("Fragment has undefined length\n");
 				// to do: see pixelmed microscopy https://www.aliza-dicom-viewer.com/download/datasets
