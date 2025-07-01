@@ -104,7 +104,7 @@ endif()
 if(BUILD_DCM2NIIXFSLIB)
     set(DCM2NIIXFSLIB dcm2niixfs)
     # BUILD_DCM2NIIXFSLIB and USE_TURBOJPEG are not allowed to be enabled at
-    # the same time, so ujpeg.cpp is unconditionaly in this sources list:
+    # the same time, so ujpeg.cpp is unconditionally in this sources list:
     set(DCM2NIIXFSLIB_SRCS
         dcm2niix_fswrapper.cpp
         nii_dicom.cpp
