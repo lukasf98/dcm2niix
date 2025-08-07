@@ -7291,11 +7291,14 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 				break;
 			echoTrainLengthPhil = dcmInt(lLength, &buffer[lPos], d.isLittleEndian);
 			break;
-		case kPrepulseDelay: // FL
+		case kPrepulseDelay: {// FL
 			if (d.manufacturer != kMANUFACTURER_PHILIPS)
 				break;
-			d.TI = dcmFloat(lLength, &buffer[lPos], d.isLittleEndian);
+			float prePulseDelayPhil = dcmFloat(lLength, &buffer[lPos], d.isLittleEndian);
+			if (prePulseDelayPhil > 0.0f)
+				d.TI = prePulseDelayPhil;
 			break;
+		}
 		case kPrepulseType: // CS [INV]
 			if (d.manufacturer != kMANUFACTURER_PHILIPS)
 				break;
