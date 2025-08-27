@@ -303,6 +303,12 @@ void geCorrectBvecs(struct TDICOMdata *d, int sliceDir, struct TDTI *vx, int isV
 	if (abs(sliceDir) != 3)
 		printWarning("Limited validation for non-Axial DTI: confirm gradient vector transformation.\n");
 	// GE vectors from Xiangrui Li' dicm2nii, validated with datasets from https://www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage#Diffusion_Tensor_Imaging
+	//
+	// GE → FSL bvec (see issue 970) for unit vector
+	// 1) Apply plane-dependent flip first
+	// 2) Always negate Y
+	// 3) ROW swap/flip (if !col)
+	// 4) Negate all components (compatibility)
 	ivec3 flp;
 	if (abs(sliceDir) == 1)
 		flp = setiVec3(1, 1, 0); // SAGITTAL
@@ -353,18 +359,19 @@ void geCorrectBvecs(struct TDICOMdata *d, int sliceDir, struct TDTI *vx, int isV
 			vx[i].V[2] = vx[i].V[2] * bVecScale;
 			vx[i].V[3] = vx[i].V[3] * bVecScale;
 		}
+		for (int v = 0; v < 3; v++)
+			if (flp.v[v] == 1)
+				vx[i].V[v + 1] = -vx[i].V[v + 1];
+		vx[i].V[2] = -vx[i].V[2]; // we read out Y-direction opposite order as dicm2nii, see also opts.isFlipY
+		// 3) ROW swap/flip (if !col) (see issue 970)
 		if (!col) { // rows need to be swizzled
 					// see Stanford dataset Ax_DWI_Tetrahedral_7 unable to resolve between possible solutions
 					//  http://www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage#Diffusion_Tensor_Imaging
 			float swap = vx[i].V[1];
 			vx[i].V[1] = vx[i].V[2];
 			vx[i].V[2] = swap;
-			vx[i].V[2] = -vx[i].V[2]; // because of transpose?
-		}
-		for (int v = 0; v < 3; v++)
-			if (flp.v[v] == 1)
-				vx[i].V[v + 1] = -vx[i].V[v + 1];
-		vx[i].V[2] = -vx[i].V[2]; // we read out Y-direction opposite order as dicm2nii, see also opts.isFlipY
+			vx[i].V[1] = -vx[i].V[1]; // because of transpose?
+		}		
 	}
 	// These next lines are only so files appear identical to old versions of dcm2niix:
 	//  dicm2nii and dcm2niix generate polar opposite gradient directions.
