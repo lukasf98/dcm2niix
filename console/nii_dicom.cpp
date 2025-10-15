@@ -5326,8 +5326,10 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 				d.imageStart = (int)lPos + (int)lFileOffset;
 				isBasicOffsetTable = true;
 			}
+			printf("!%d %d\n", lLength, isBasicOffsetTable );
 			if (!isBasicOffsetTable) {
 				d.imageBytes = lLength;
+				printf("!!!!%d\n", lLength );
 				if (d.offsetTableItems < kMaxSlice2D)
 					dti4D->offsetTable[d.offsetTableItems] = (int)lPos + (int)lFileOffset;
 				d.offsetTableItems ++;
@@ -7727,7 +7729,11 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 				dcmMultiFloat(lLength, (char *)&buffer[lPos], 6, orient);
 				if ((!isSameFloatGE(d.orient[1], orient[1]) || !isSameFloatGE(d.orient[2], orient[2]) || !isSameFloatGE(d.orient[3], orient[3]) ||
 					 !isSameFloatGE(d.orient[4], orient[4]) || !isSameFloatGE(d.orient[5], orient[5]) || !isSameFloatGE(d.orient[6], orient[6]))) {
-					if (!d.isLocalizer)
+					if (isSliceOrientVaries) {
+						//
+					} else if (prefs->isKeepDirectionVaries)
+						printWarning("Keeping series even though slice orientation varies\n");
+					else if (!d.isLocalizer)
 						printError("DICOM incompatible with NIfTI slice orientation varies (issue 894, localizer?) [%g %g %g %g %g %g] != [%g %g %g %g %g %g]\n",
 									 d.orient[1], d.orient[2], d.orient[3], d.orient[4], d.orient[5], d.orient[6],
 									 orient[1], orient[2], orient[3], orient[4], orient[5], orient[6]);
@@ -8661,7 +8667,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 	d.SAR = fmax(maxSAR, d.SAR);
 	// d.rawDataRunNumber =  (d.rawDataRunNumber > d.phaseNumber) ? d.rawDataRunNumber : d.phaseNumber; //will not work: conflict for MultiPhase ASL with multiple averages
 	// end: issue529
-	if (isSliceOrientVaries)
+	if ((isSliceOrientVaries) && (!prefs->isKeepDirectionVaries))
 		d.isValid = false; //issue894
 	if (hasDwiDirectionality)
 		d.isVectorFromBMatrix = false; // issue 265: Philips/Siemens have both directionality and bmatrix, Bruker only has bmatrix
@@ -8699,6 +8705,7 @@ void setDefaultPrefs(struct TDCMprefs *prefs) {
 	prefs->isVerbose = false;
 	prefs->compressFlag = kCompressSupport;
 	prefs->isIgnoreTriggerTimes = false;
+	prefs->isKeepDirectionVaries = false;
 }
 
 struct TDICOMdata readDICOMv(char *fname, int isVerbose, int compressFlag, struct TDTI4D *dti4D) {

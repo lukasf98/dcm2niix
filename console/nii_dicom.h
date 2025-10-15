@@ -57,7 +57,7 @@ extern "C" {
 #define kCPUsuf " " // unknown CPU
 #endif
 
-#define kDCMdate "v1.0.20251014"
+#define kDCMdate "v1.0.20251015"
 #define kDCMvers kDCMdate " " kJP2suf kTurbosuf kLSsuf kCCsuf kCPUsuf
 
 static const int kMaxEPI3D = 1024; // maximum number of EPI images in Siemens Mosaic
@@ -279,7 +279,7 @@ struct TDICOMdata {
 };
 
 struct TDCMprefs {
-	int isVerbose, compressFlag, isIgnoreTriggerTimes;
+	int isVerbose, compressFlag, isIgnoreTriggerTimes, isKeepDirectionVaries;
 };
 
 size_t nii_ImgBytes(struct nifti_1_header hdr);

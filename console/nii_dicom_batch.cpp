@@ -267,6 +267,7 @@ void opts2Prefs(struct TDCMopts *opts, struct TDCMprefs *prefs) {
 	prefs->isVerbose = opts->isVerbose;
 	prefs->compressFlag = opts->compressFlag;
 	prefs->isIgnoreTriggerTimes = opts->isIgnoreTriggerTimes;
+	prefs->isKeepDirectionVaries = opts->isKeepDirectionVaries;
 }
 
 void geCorrectBvecs(struct TDICOMdata *d, int sliceDir, struct TDTI *vx, int isVerbose) {
@@ -10601,6 +10602,7 @@ void setDefaultOpts(struct TDCMopts *opts, const char *argv[]) { // either "setD
 	opts->isTestx0021x105E = false;	 // GE test slice times stored in 0021,105E
 	opts->diffCyclingModeGE = -1;
 	opts->isIgnoreTriggerTimes = false;
+	opts->isKeepDirectionVaries = false;
 	opts->saveFormat = kSaveFormatNIfTI;
 	opts->isPipedGz = false; // e.g. pipe data directly to pigz instead of saving uncompressed to disk
 	opts->isSave3D = false;

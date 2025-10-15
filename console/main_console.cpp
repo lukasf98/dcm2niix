@@ -69,7 +69,7 @@ void showHelp(const char *argv[], struct TDCMopts opts) {
 	printf("  -f : filename (%%a=antenna (coil) name, %%b=basename, %%c=comments, %%d=description, %%e=echo number, %%f=folder name, %%g=accession number, %%i=ID of patient, %%j=seriesInstanceUID, %%k=studyInstanceUID, %%m=manufacturer, %%n=name of patient, %%o=mediaObjectInstanceUID, %%p=protocol,%s %%r=instance number, %%s=series number, %%t=time, %%u=acquisition number, %%v=vendor, %%x=study ID; %%z=sequence name; default '%s')\n", kQstr, opts.filename);
 	printf("  -g : generate defaults file (y/n/o/i [o=only: reset and write defaults; i=ignore: reset defaults], default n)\n");
 	printf("  -h : show help\n");
-	printf("  -i : ignore derived, localizer and 2D images (y/n, default n)\n");
+	printf("  -i : ignore derived, localizer and 2D images (y/n/o, default n, o overrides keeping non-planar localizers)\n");
 	char max16Ch = 'n';
 	if (opts.isMaximize16BitRange == kMaximize16BitRange_True)
 		max16Ch = 'y';
@@ -383,7 +383,10 @@ int main(int argc, const char *argv[]) {
 				i++;
 				if (invalidParam(i, argv))
 					return 0;
-				if ((argv[i][0] == 'n') || (argv[i][0] == 'N') || (argv[i][0] == '0'))
+				if ((argv[i][0] == 'o') || (argv[i][0] == 'O')) {
+					opts.isKeepDirectionVaries = true;
+					opts.isIgnoreDerivedAnd2D = false;
+				} else if ((argv[i][0] == 'n') || (argv[i][0] == 'N') || (argv[i][0] == '0'))
 					opts.isIgnoreDerivedAnd2D = false;
 				else
 					opts.isIgnoreDerivedAnd2D = true;
