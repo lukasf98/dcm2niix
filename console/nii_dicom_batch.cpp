@@ -3439,6 +3439,22 @@ bool intensityScaleVaries(int nConvert, struct TDCMsort dcmSort[], struct TDICOM
 	return false;
 } // intensityScaleVaries()
 
+bool bitDepthVaries(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmList[]) {
+	// detect whether some DICOM images report different intensity scaling
+	// some Siemens PET scanners generate 16-bit images where slice has its own scaling factor.
+	//  since NIfTI provides a single scaling factor for each file, these images require special consideration
+	if (nConvert < 2)
+		return false;
+	int dt = dcmList[dcmSort[0].indx].bitsAllocated;
+	for (int i = 1; i < nConvert; i++) { // stack additional images
+		uint64_t indx = dcmSort[i].indx;
+		if (dcmList[indx].bitsAllocated != dt)
+			return true;
+	}
+	return false;
+} // bitDepthVaries()
+
+
 /*unsigned char * nii_bgr2rgb(unsigned char* bImg, struct nifti_1_header *hdr) {
  //DICOM planarappears to be BBB..B,GGG..G,RRR..R, NIfTI RGB saved in planes RRR..RGGG..GBBBB..B
  // see http://www.barre.nom.fr/medical/samples/index.html US-RGB-8-epicard
@@ -8191,6 +8207,9 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 #endif
 
 	bool iVaries = intensityScaleVaries(nConvert, dcmSort, dcmList);
+	bool bppVaries = false;
+	if (iVaries) 
+		bppVaries = bitDepthVaries(nConvert, dcmSort, dcmList);
 	float *sliceMMarray = NULL; // only used if slices are not equidistant
 	uint64_t indx = dcmSort[0].indx;
 	uint64_t indx0 = dcmSort[0].indx;
@@ -8962,8 +8981,15 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 		}
 #endif // myNoRois
 		imgM = removeADC(&hdr0, imgM, numADC);
-		if (iVaries)
-			printMessage("Saving as 32-bit float (slope, intercept or bits allocated varies).\n");
+		if (bppVaries)
+			printMessage("Saving as 32-bit float (bits allocated varies).\n");
+		else if (iVaries) {
+			if (!opts.isPhilipsFloatNotDisplayScaling) {
+				printWarning("Variance of DICOM slope/intercept is being ignored due to use of the `-p n` option.\n");
+				iVaries = false;
+			} else
+				printMessage("Saving as 32-bit float (slope, intercept or bits allocated varies).\n");
+		}
 #ifndef USING_R
 		// divest does not support non-NIfTI formats, and requires only one
 		// image per series, so skip this to avoid double-saving
