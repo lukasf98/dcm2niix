@@ -9,6 +9,8 @@ ExternalProject_Add(openjpeg
         -Wno-dev
         --no-warn-unused-cli
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>
+        -DOPJ_USE_THREAD=OFF
         -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
         -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
         -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
