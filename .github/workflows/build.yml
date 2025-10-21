@@ -18,7 +18,8 @@ jobs:
             artifact: dcm2niix_lnx.zip
           - os: macos-latest
             name: mac
-            artifact: dcm2niix_mac.zip
+            artifact_intel: dcm2niix_mac_intel.zip
+            artifact_arm: dcm2niix_mac_arm.zip
     
     runs-on: ${{ matrix.os }}
     
@@ -94,13 +95,35 @@ jobs:
     - name: Package (macOS)
       if: matrix.name == 'mac'
       run: |
-        mkdir -p build/bin
-        lipo -create -output build/bin/dcm2niix intel/bin/dcm2niix apple/bin/dcm2niix
-        strip -Sx build/bin/*
-        7z a dcm2niix_mac.zip ./build/bin/*
+        # Package Intel version
+        mkdir -p build_intel/bin
+        cp intel/bin/dcm2niix build_intel/bin/
+        strip -Sx build_intel/bin/*
+        7z a dcm2niix_mac_intel.zip ./build_intel/bin/*
+
+        # Package ARM version
+        mkdir -p build_arm/bin
+        cp apple/bin/dcm2niix build_arm/bin/
+        strip -Sx build_arm/bin/*
+        7z a dcm2niix_mac_arm.zip ./build_arm/bin/*
     
-    - name: Upload artifact
+    - name: Upload artifact (Windows/Linux)
+      if: matrix.name != 'mac'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.name }}-artifact
         path: ${{ matrix.artifact }}
+
+    - name: Upload artifact (macOS Intel)
+      if: matrix.name == 'mac'
+      uses: actions/upload-artifact@v4
+      with:
+        name: mac-intel-artifact
+        path: ${{ matrix.artifact_intel }}
+
+    - name: Upload artifact (macOS ARM)
+      if: matrix.name == 'mac'
+      uses: actions/upload-artifact@v4
+      with:
+        name: mac-arm-artifact
+        path: ${{ matrix.artifact_arm }}
