@@ -63,13 +63,13 @@ jobs:
       if: matrix.name == 'linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-8 g++-8
+        sudo apt-get install build-essential
     
     - name: Build (Linux)
       if: matrix.name == 'linux'
       run: |
-        export CC=gcc-8
-        export CXX=g++-8
+        export CC=gcc
+        export CXX=g++
         cmake -Wno-dev -DZLIB_IMPLEMENTATION=Cloudflare -DUSE_JPEGLS=ON -DUSE_OPENJPEG=ON -B build
         cmake --build build
     
