@@ -79,7 +79,7 @@ void showHelp(const char *argv[], struct TDCMopts opts) {
 	printf("  -m : merge 2D slices from same series regardless of echo, exposure, etc. (n/y or 0/1/2, default 2) [no, yes, auto]\n");
 	printf("  -n : only convert this series CRC number - can be used up to %i times (default convert all)\n", MAX_NUM_SERIES);
 	printf("  -o : output directory (omit to save to input folder)\n");
-	printf("  -p : Philips precise float (not display) scaling (y/n, default y)\n");
+	printf("  -p : Philips precise float (not display) scaling (y/n/o, default y; o to override and ignore variable intensity scaling)\n");
 	printf("  -q : only search directory for DICOMs (y/l/n, default y) [y=show number of DICOMs found, l=additionally list DICOMs found, n=no]\n");
 	printf("  -r : rename instead of convert DICOMs (y/n, default n)\n");
 	printf("  -s : single file mode, do not convert other images in folder (y/n, default n)\n");
@@ -446,7 +446,9 @@ int main(int argc, const char *argv[]) {
 				i++;
 				if (invalidParam(i, argv))
 					return 0;
-				if ((argv[i][0] == 'n') || (argv[i][0] == 'N') || (argv[i][0] == '0'))
+				if ((argv[i][0] == 'o') || (argv[i][0] == 'O'))
+					opts.isIgnoreIntensityScaling = true;
+				else if ((argv[i][0] == 'n') || (argv[i][0] == 'N') || (argv[i][0] == '0'))
 					opts.isPhilipsFloatNotDisplayScaling = false;
 				else
 					opts.isPhilipsFloatNotDisplayScaling = true;

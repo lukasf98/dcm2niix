@@ -2389,7 +2389,8 @@ tse3d: T2*/
 	//  FSL definition is start of first line until start of last line.
 	//  Other than the use of (n-1), the value is basically just 1.0/bandwidthPerPixelPhaseEncode.
 	//  https://github.com/rordenlab/dcm2niix/issues/130
-	if (d.manufacturer != kMANUFACTURER_UIH) // issue606
+	//  https://neurostars.org/t/error-bids-validation-after-dcm2bids-conversion-repetitiontime-and-acquisitionduration-are-mutually-exclusive/30759/13
+	if ((d.manufacturer != kMANUFACTURER_UIH) && (d.TR <= 0.0)) // issue606
 		json_Float(fp, "\t\"AcquisitionDuration\": %g,\n", d.acquisitionDuration);
 	if ((d.manufacturer == kMANUFACTURER_UIH) && (effectiveEchoSpacing <= 0.0)) // issue225, issue531
 		json_Float(fp, "\t\"TotalReadoutTime\": %g,\n", d.acquisitionDuration / 1000.0);
@@ -6669,7 +6670,6 @@ int nii_saveCrop(char *niiFilename, struct nifti_1_header hdr, unsigned char *im
 	hdrX.srow_y[3] += hdr.srow_y[2] * ventralCrop;
 	hdrX.srow_z[3] += hdr.srow_z[2] * ventralCrop;
 	//issue889 - also change origin for qform
-	//mork
 	mat44 Q44;
 	LOAD_MAT44(Q44,
 			   hdrX.srow_x[0], hdrX.srow_x[1], hdrX.srow_x[2], hdrX.srow_x[3],
@@ -8281,6 +8281,15 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 #endif
 
 	struct nifti_1_header hdr0 = {0};
+	
+	if ((iVaries) && (dcmList[indx].manufacturer != kMANUFACTURER_PHILIPS) && (!opts.isPhilipsFloatNotDisplayScaling)) {
+		printWarning("Variance of DICOM slope/intercept is being ignored due to use of the `-p n` option.\n");
+		iVaries = false;
+	}
+	if ((iVaries) && (opts.isIgnoreIntensityScaling)) {
+		printWarning("Variance of DICOM slope/intercept is being ignored due to use of the `-p o` option.\n");
+		iVaries = false;
+	}
 	unsigned char *img = nii_loadImgXL(nameList->str[indx], &hdr0, dcmList[indx], iVaries, opts.compressFlag, opts.isVerbose, dti4D);
 	if (strlen(opts.imageComments) > 0) {
 		for (int i = 0; i < 24; i++)
@@ -8983,13 +8992,8 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 		imgM = removeADC(&hdr0, imgM, numADC);
 		if (bppVaries)
 			printMessage("Saving as 32-bit float (bits allocated varies).\n");
-		else if (iVaries) {
-			if (!opts.isPhilipsFloatNotDisplayScaling) {
-				printWarning("Variance of DICOM slope/intercept is being ignored due to use of the `-p n` option.\n");
-				iVaries = false;
-			} else
-				printMessage("Saving as 32-bit float (slope, intercept or bits allocated varies).\n");
-		}
+		else if (iVaries)
+			printMessage("Saving as 32-bit float (slope, intercept or bits allocated varies).\n");
 #ifndef USING_R
 		// divest does not support non-NIfTI formats, and requires only one
 		// image per series, so skip this to avoid double-saving
@@ -10620,6 +10624,7 @@ void setDefaultOpts(struct TDCMopts *opts, const char *argv[]) { // either "setD
 	opts->isIgnoreDerivedAnd2D = false;
 	opts->isForceOnsetTimes = true;
 	opts->isPhilipsFloatNotDisplayScaling = true;
+	opts->isIgnoreIntensityScaling = false;
 	opts->isCrop = false;
 	opts->isRotate3DAcq = true;
 	opts->isGz = false;

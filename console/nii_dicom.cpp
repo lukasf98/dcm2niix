@@ -5326,10 +5326,8 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 				d.imageStart = (int)lPos + (int)lFileOffset;
 				isBasicOffsetTable = true;
 			}
-			printf("!%d %d\n", lLength, isBasicOffsetTable );
 			if (!isBasicOffsetTable) {
 				d.imageBytes = lLength;
-				printf("!!!!%d\n", lLength );
 				if (d.offsetTableItems < kMaxSlice2D)
 					dti4D->offsetTable[d.offsetTableItems] = (int)lPos + (int)lFileOffset;
 				d.offsetTableItems ++;
