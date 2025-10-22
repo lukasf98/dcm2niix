@@ -1,0 +1,129 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true  # Stop all builds if one fails
+      matrix:
+        include:
+          - os: windows-latest
+            name: win
+            artifact: dcm2niix_win.zip
+          - os: ubuntu-latest
+            name: linux
+            artifact: dcm2niix_lnx.zip
+          - os: macos-latest
+            name: mac
+            artifact_intel: dcm2niix_mac_intel.zip
+            artifact_arm: dcm2niix_mac_arm.zip
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    
+    - name: Set version
+      id: version
+      shell: bash
+      run: |
+        DATE=$(date +'%d-%b-%Y')
+        GITHASH=$(git rev-parse --short=7 HEAD)
+        if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          GITTAG="_${{ github.ref_name }}"
+        else
+          GITTAG=""
+        fi
+        VERSION="${DATE}_g${GITHASH}${GITTAG}"
+        RELEASE_VERSION=$(date +'%d-%B-%Y')
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "release_version=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+        echo "Build version: ${VERSION}"
+    
+    # Windows build
+    - name: Build (Windows)
+      if: matrix.name == 'win'
+      shell: cmd
+      run: |
+        cmake -Wno-dev -DZLIB_IMPLEMENTATION=Cloudflare -DUSE_JPEGLS=ON -DUSE_OPENJPEG=ON -B build
+        cmake --build build --config Release
+    
+    - name: Package (Windows)
+      if: matrix.name == 'win'
+      shell: cmd
+      run: 7z a dcm2niix_win.zip .\build\bin\*
+    
+    # Linux build
+    - name: Setup GCC (Linux)
+      if: matrix.name == 'linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install build-essential
+    
+    - name: Build (Linux)
+      if: matrix.name == 'linux'
+      run: |
+        export CC=gcc
+        export CXX=g++
+        cmake -Wno-dev -DZLIB_IMPLEMENTATION=Cloudflare -DUSE_JPEGLS=ON -DUSE_OPENJPEG=ON -B build
+        cmake --build build
+    
+    - name: Package (Linux)
+      if: matrix.name == 'linux'
+      run: |
+        strip -sx build/bin/*
+        7z a dcm2niix_lnx.zip ./build/bin/*
+    
+    # macOS build
+    - name: Build (macOS)
+      if: matrix.name == 'mac'
+      run: |
+        # Build Intel version
+        cmake -Wno-dev -DCMAKE_OSX_ARCHITECTURES=x86_64 -DZLIB_IMPLEMENTATION=Cloudflare -DUSE_JPEGLS=ON -DUSE_OPENJPEG=ON -B intel
+        cmake --build intel
+        
+        # Build ARM version
+        cmake -Wno-dev -DCMAKE_OSX_ARCHITECTURES=arm64 -DZLIB_IMPLEMENTATION=Cloudflare -DUSE_JPEGLS=ON -DUSE_OPENJPEG=ON -B apple
+        cmake --build apple
+    
+    - name: Package (macOS)
+      if: matrix.name == 'mac'
+      run: |
+        # Package Intel version
+        mkdir -p build_intel/bin
+        cp intel/bin/dcm2niix build_intel/bin/
+        strip -Sx build_intel/bin/*
+        7z a dcm2niix_mac_intel.zip ./build_intel/bin/*
+
+        # Package ARM version
+        mkdir -p build_arm/bin
+        cp apple/bin/dcm2niix build_arm/bin/
+        strip -Sx build_arm/bin/*
+        7z a dcm2niix_mac_arm.zip ./build_arm/bin/*
+    
+    - name: Upload artifact (Windows/Linux)
+      if: matrix.name != 'mac'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.name }}-artifact
+        path: ${{ matrix.artifact }}
+
+    - name: Upload artifact (macOS Intel)
+      if: matrix.name == 'mac'
+      uses: actions/upload-artifact@v4
+      with:
+        name: mac-intel-artifact
+        path: ${{ matrix.artifact_intel }}
+
+    - name: Upload artifact (macOS ARM)
+      if: matrix.name == 'mac'
+      uses: actions/upload-artifact@v4
+      with:
+        name: mac-arm-artifact
+        path: ${{ matrix.artifact_arm }}
