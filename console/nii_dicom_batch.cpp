@@ -6476,6 +6476,9 @@ int nii_saveNII3Deq(char *niiFilename, struct nifti_1_header hdr, unsigned char 
 	float *out32 = (float *)out8;
 	short *out16 = (short *)out8;
 	int isSeg = d.modality == kMODALITY_SEG;
+	#ifdef myForceNearestNeighborEq
+	isSeg = true;
+	#endif
 	for (int s = 0; s < outSlices; s++) {
 		float out_mm = s * mn;
 		// Find the closest two input slices
