@@ -8479,7 +8479,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 		strcpy(d.seriesInstanceUID, seriesTimeTxt); // dest <- src
 		d.seriesUidCrc = mz_crc32X((unsigned char *)&seriesTimeTxt, strlen(seriesTimeTxt));
 	}
-	if (((d.manufacturer == kMANUFACTURER_TOSHIBA) || (d.manufacturer == kMANUFACTURER_CANON)) && (B0Philips > 0.0)) { // issue 388
+	if (((d.manufacturer == kMANUFACTURER_TOSHIBA) || (d.manufacturer == kMANUFACTURER_CANON)) && (B0Philips > 0.0) && (!d.isBVecWorldCoordinates)) { // issue 388
 		char txt[1024] = {""};
 		snprintf(txt, 1024, "b=%d(", (int)round(B0Philips));
 		if (strstr(d.imageComments, txt) != NULL) {
