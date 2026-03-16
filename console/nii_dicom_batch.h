@@ -27,6 +27,8 @@ struct MRIFSSTRUCT {
 	int numDti;
 };
 
+std::vector<std::vector<float>> *nii_getAutoScaleFactorVector();
+
 MRIFSSTRUCT *nii_getMrifsStruct();
 void nii_clrMrifsStruct();
 
