@@ -31,12 +31,12 @@ double get_wall_time() {
 #endif
 
 const char *removePath(const char *path) { // "/usr/path/filename.exe" -> "filename.exe"
-	const char *pDelimeter = strrchr(path, '\\');
-	if (pDelimeter)
-		path = pDelimeter + 1;
-	pDelimeter = strrchr(path, '/');
-	if (pDelimeter)
-		path = pDelimeter + 1;
+	const char *pDelimiter = strrchr(path, '\\');
+	if (pDelimiter)
+		path = pDelimiter + 1;
+	pDelimiter = strrchr(path, '/');
+	if (pDelimiter)
+		path = pDelimiter + 1;
 	return path;
 } // removePath()
 

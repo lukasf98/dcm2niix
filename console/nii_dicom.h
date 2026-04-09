@@ -159,7 +159,7 @@ static const int kMaxDTI4D = kMaxSlice2D; // issue460: maximum number of DTI dir
 #define kASL_FLAG_GE_PULSED 64
 
 // for spoiling 0018,9016
-#define kSPOILING_UNKOWN -1
+#define kSPOILING_UNKNOWN -1
 #define kSPOILING_NONE 0
 #define kSPOILING_RF 1
 #define kSPOILING_GRADIENT 2
