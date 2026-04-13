@@ -1590,7 +1590,7 @@ tse3d: T2*/
 		fprintf(fp, "\t\"Units\": \"Hz\",\n");
 	// PET ISOTOPE MODULE ATTRIBUTES
 	json_Str(fp, "\t\"TracerRadionuclide\": \"%s\",\n", d.tracerRadionuclide);
-	json_Str(fp, "\t\"Radiopharmaceutical\": \"%s\",\n", d.radiopharmaceutical);
+	//json_Str(fp, "\t\"Radiopharmaceutical\": \"%s\",\n", d.radiopharmaceutical);
 	json_Float(fp, "\t\"RadionuclidePositronFraction\": %g,\n", d.radionuclidePositronFraction);
 	json_Float(fp, "\t\"InjectedRadioactivity\": %.8g,\n", d.radionuclideTotalDose); // renamed https://bids-specification.readthedocs.io/en/stable/glossary.html#objects.metadata.InjectedRadioactivity
 	if (d.radionuclideTotalDose > 0.0)
@@ -1698,7 +1698,7 @@ tse3d: T2*/
 	// END issue 802
 	json_Float(fp, "\t\"ScatterFraction\": %g,\n", d.scatterFraction);
 	if (dti4D->decayFactor[0] >= 0.0) { // see BEP009 PET https://docs.google.com/document/d/1mqMLnxVdLwZjDd4ZiWFqjEAmOmfcModA_R535v3eQs0
-		fprintf(fp, "\t\"DecayFactor\": [\n");
+		fprintf(fp, "\t\"DecayCorrectionFactor\": [\n");
 		for (int i = 0; i < h->dim[4]; i++) {
 			if (i != 0)
 				fprintf(fp, ",\n");

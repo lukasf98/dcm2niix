@@ -797,7 +797,7 @@ struct TDICOMdata clear_dicom_data() {
 	strcpy(d.coilName, "");
 	strcpy(d.coilElements, "");
 	strcpy(d.pulseSequenceName, "");
-	strcpy(d.radiopharmaceutical, "");
+	// strcpy(d.radiopharmaceutical, "");
 	strcpy(d.convolutionKernel, "");
 	strcpy(d.parallelAcquisitionTechnique, "");
 	strcpy(d.imageOrientationText, "");
@@ -4485,8 +4485,12 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 #define kInstitutionName 0x0008 + (0x0080 << 16)
 #define kInstitutionAddress 0x0008 + (0x0081 << 16)
 #define kReferringPhysicianName 0x0008 + (0x0090 << 16)
-#define kTracerRadionuclide1 0x0008 + (0x0100 << 16) // SH
-#define kTracerRadionuclide2 0x0008 + (0x0104 << 16) // LO
+#define kCodeValue 0x0008 + (0x0100 << 16)
+#define kCodingSchemeDesignator 0x0008 + (0x0102 << 16)
+#define kCodingSchemeVersion 0x0008 + (0x0103 << 16)
+#define kCodeMeaning 0x0008 + (0x0104 << 16)
+// #define kTracerRadionuclide1 0x0008 + (0x0100 << 16) // SH
+// #define kTracerRadionuclide2 0x0008 + (0x0104 << 16) // LO
 #define kStationName 0x0008 + (0x1010 << 16)
 #define kStudyDescription 0x0008 + (0x1030 << 16)  // LO
 #define kSeriesDescription 0x0008 + (0x103E << 16) // '0008' '103E' 'LO' 'SeriesDescription'
@@ -4510,10 +4514,6 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 #define kAnatomicalOrientationType 0x0010 + (0x2210 << 16)
 #define kDeidentificationMethod 0x0012 + (0x0063 << 16) //[DICOMANON, issue 383
 #define kDeidentificationMethodCodeSequence 0x0012 + (0x0064 << 16)
-#define kCodeValue 0x0008 + (0x0100 << 16)
-#define kCodingSchemeDesignator 0x0008 + (0x0102 << 16)
-#define kCodingSchemeVersion 0x0008 + (0x0103 << 16)
-#define kCodeMeaning 0x0008 + (0x0104 << 16)
 #define kBodyPartExamined 0x0018 + (0x0015 << 16)
 #define kBodyPartExamined 0x0018 + (0x0015 << 16)
 #define kScanningSequence 0x0018 + (0x0020 << 16)
@@ -4521,7 +4521,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 #define kScanOptions 0x0018 + (0x0022 << 16)
 #define kMRAcquisitionType 0x0018 + (0x0023 << 16)
 #define kSequenceName 0x0018 + (0x0024 << 16)
-#define kRadiopharmaceutical 0x0018 + (0x0031 << 16) // LO
+//#define kRadiopharmaceutical 0x0018 + (0x0031 << 16) // LO
 #define kZThick 0x0018 + (0x0050 << 16)
 #define kTR 0x0018 + (0x0080 << 16)
 #define kTE 0x0018 + (0x0081 << 16)
@@ -4716,6 +4716,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 #define kImageOrientationText 0x0051 + (0x100E << 16)		 //
 #define kCoilSiemens 0x0051 + (0x100F << 16)
 #define kImaPATModeText 0x0051 + (0x1011 << 16)
+#define kRadiopharmaceuticalInformationSQ 0x0054 + (0x0016 << 16)
 #define kLocationsInAcquisition 0x0054 + (0x0081 << 16)
 #define kUnitsPT 0x0054 + (0x1001 << 16)					 // CS
 #define kAttenuationCorrectionMethod 0x0054 + (0x1101 << 16) // LO
@@ -4809,6 +4810,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 	float MRImageDynamicScanBeginTime = 0.0;
 	bool isHasBMatrix = false;
 	bool isHasBVec = false;
+	bool is00540016SQ = false;
 	bool is2005140FSQ = false;
 	bool isSliceOrientVaries = false; //issue894
 	int sqDepth04000561 = -1;
@@ -5036,6 +5038,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 			}
 			is2005140FSQ = false;
 			is00089092SQ = false;
+			is00540016SQ = false;
 			if (sqDepth < 0)
 				sqDepth = 0; // should not happen, but protect for faulty anonymization
 			// if we leave the folder MREchoSequence 0018,9114
@@ -5890,7 +5893,9 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 			break;
 		}
 		case kCodeMeaning: {
-			if (isDeidentificationMethodCodeSequence && d.deID_CS_n < MAX_DEID_CS) {
+			if (is00540016SQ) {
+				dcmStr(lLength, &buffer[lPos], d.tracerRadionuclide);
+			} else if (isDeidentificationMethodCodeSequence && d.deID_CS_n < MAX_DEID_CS) {
 				dcmStr(lLength, &buffer[lPos], dti4D->deID_CS[d.deID_CS_n].CodeMeaning);
 				d.deID_CS_n++;
 			}
@@ -6879,9 +6884,9 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 		case kIntercept:
 			d.intenIntercept = dcmStrFloat(lLength, &buffer[lPos]);
 			break;
-		case kRadiopharmaceutical:
-			dcmStr(lLength, &buffer[lPos], d.radiopharmaceutical);
-			break;
+		//case kRadiopharmaceutical:
+		//	dcmStr(lLength, &buffer[lPos], d.radiopharmaceutical);
+		//	break;
 		case kZThick:
 			d.xyzMM[3] = dcmStrFloat(lLength, &buffer[lPos]);
 			d.zThick = d.xyzMM[3];
@@ -6958,12 +6963,21 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 				multiBandFactor = 0.0;
 			break;
 		}
+		case kRadiopharmaceuticalInformationSQ:
+			is00540016SQ = true;
+			break;
 		case kLocationsInAcquisition:
 			d.locationsInAcquisition = dcmInt(lLength, &buffer[lPos], d.isLittleEndian);
 			break;
-		case kUnitsPT: // CS
+		case kUnitsPT: {// CS
 			dcmStr(lLength, &buffer[lPos], d.unitsPT);
+			if (strcmp(d.unitsPT, "BQML") == 0) {
+					const char *replacement = "Bq/mL";
+					strncpy(d.unitsPT, replacement, kDICOMStr);
+					d.unitsPT[kDICOMStr - 1] = '\0';
+			}
 			break;
+		}
 		case kAttenuationCorrectionMethod: // LO
 			dcmStr(lLength, &buffer[lPos], d.attenuationCorrectionMethod);
 			break;
