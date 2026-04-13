@@ -97,26 +97,47 @@ void showHelp(const char *argv[], struct TDCMopts opts) {
 	char gzCh = 'n';
 	if (opts.isGz)
 		gzCh = 'y';
-#if defined(_WIN64) || defined(_WIN32)
-// n.b. the optimal use of pigz requires pipes that are not provided for Windows
-#ifdef myDisableZLib
-	if (strlen(opts.pigzname) > 0)
-		printf("  -z : gz compress images (y/n/3, default %c) [y=pigz, n=no, 3=no,3D]\n", gzCh);
-	else
-		printf("  -z : gz compress images (y/n/3, default %c)  [y=pigz(MISSING!), n=no, 3=no,3D]\n", gzCh);
-#else
+	{
+		char zOpts[256] = "y";
+		char zDesc[512] = "y=pigz";
+#if !defined(_WIN64) && !defined(_WIN32)
+		// optimal pigz requires pipes, not available on Windows
+		strcat(zOpts, "/o");
+		if (strlen(opts.pigzname) > 0)
+			strcat(zDesc, ", o=optimal pigz");
+		else
+			strcat(zDesc, ", o=optimal(requires pigz)");
+#endif
+#ifdef myEnableZSTD
+		strcat(zOpts, "/s");
+		strcat(zDesc, ", s=zstd");
+#endif
+#ifndef myDisableZLib
+		strcat(zOpts, "/i");
 #ifdef myDisableMiniZ
-	printf("  -z : gz compress images (y/i/n/3/o, default %c) [y=pigz, i=internal:zlib, n=no, 3=no,3D]\n", gzCh);
+		strcat(zDesc, ", i=internal:zlib");
 #else
-	printf("  -z : gz compress images (y/i/n/3, default %c) [y=pigz, i=internal:miniz, n=no, 3=no,3D]\n", gzCh);
+		strcat(zDesc, ", i=internal:miniz");
 #endif
 #endif
+		strcat(zOpts, "/n/3");
+		strcat(zDesc, ", n=no, 3=no,3D");
+		if (strlen(opts.pigzname) < 1) {
+#ifdef myDisableZLib
+			printf("  -z : gz compress images (%s, default %c) [%s] pigz(MISSING!)\n", zOpts, gzCh, zDesc);
+#else
+			printf("  -z : compress images (%s, default %c) [%s]\n", zOpts, gzCh, zDesc);
+#endif
+		} else
+			printf("  -z : compress images (%s, default %c) [%s]\n", zOpts, gzCh, zDesc);
+	}
 	printf("  --big-endian : byte order (y/n/o, default o) [y=big-end, n=little-end, o=optimal/native]\n");
-	printf("  --progress : report progress (y/n, default n)\n");
 	printf("  --ignore_trigger_times : disregard values in 0018,1060 and 0020,9153\n");
 	printf("  --terse : omit filename post-fixes (can cause overwrites)\n");
 	printf("  --version : report version\n");
 	printf("  --xml : Slicer format features\n");
+#if defined(_WIN64) || defined(_WIN32)
+	printf("  --progress : report progress (y/n, default n)\n");
 	printf(" Defaults stored in Windows registry\n");
 	printf(" Examples :\n");
 	printf("  %s c:\\DICOM\\dir\n", cstr);
@@ -125,28 +146,7 @@ void showHelp(const char *argv[], struct TDCMopts opts) {
 	printf("  %s -f mystudy%%s c:\\DICOM\\dir\n", cstr);
 	printf("  %s -o \"c:\\dir with spaces\\dir\" c:\\dicomdir\n", cstr);
 #else
-#ifdef myEnableZSTD
-	printf("  -z : compress images (y/o/s/i/n/3, default %c) [y=pigz, o=optimal pigz, s=zstd, i=internal:gz, n=no, 3=no,3D]\n", gzCh);
-#else
-#ifdef myDisableZLib
-	if (strlen(opts.pigzname) > 0)
-		printf("  -z : gz compress images (y/o/n/3, default %c) [y=pigz, o=optimal pigz, n=no, 3=no,3D]\n", gzCh);
-	else
-		printf("  -z : gz compress images (y/o/n/3, default %c)  [y=pigz(MISSING!), o=optimal(requires pigz), n=no, 3=no,3D]\n", gzCh);
-#else
-#ifdef myDisableMiniZ
-	printf("  -z : gz compress images (y/o/i/n/3, default %c) [y=pigz, o=optimal pigz, i=internal:zlib, n=no, 3=no,3D]\n", gzCh);
-#else
-	printf("  -z : gz compress images (y/o/i/n/3, default %c) [y=pigz, o=optimal pigz, i=internal:miniz, n=no, 3=no,3D]\n", gzCh);
-#endif
-#endif
-#endif
-	printf("  --big-endian : byte order (y/n/o, default o) [y=big-end, n=little-end, o=optimal/native]\n");
 	printf("  --progress : Slicer format progress information (y/n, default n)\n");
-	printf("  --ignore_trigger_times : disregard values in 0018,1060 and 0020,9153\n");
-	printf("  --terse : omit filename post-fixes (can cause overwrites)\n");
-	printf("  --version : report version\n");
-	printf("  --xml : Slicer format features\n");
 	printf(" Defaults file : %s\n", opts.optsname);
 	printf(" Examples :\n");
 	printf("  %s /Users/chris/dir\n", cstr);
