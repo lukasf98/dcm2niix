@@ -242,6 +242,11 @@ MRIFSSTRUCT *dcm2niix_fswrapper::getMrifsStruct(void) {
 	return nii_getMrifsStruct();
 }
 
+// interface to nii_dicom_batch.cpp::nii_getAutoScaleFactorVector()
+std::vector<std::vector<float>> *dcm2niix_fswrapper::getAutoScaleFactorVector() {
+        return nii_getAutoScaleFactorVector();
+}
+
 // interface to nii_dicom_batch.cpp::nii_getMrifsStructVector()
 std::vector<MRIFSSTRUCT> *dcm2niix_fswrapper::getMrifsStructVector(void) {
 	return nii_getMrifsStructVector();
@@ -295,8 +300,8 @@ void dcm2niix_fswrapper::dicomDump(const char *dicomdir, const char *series_info
 			fprintf(fp_dcmLst, "%s\n", (*mrifsStruct_vector)[n].dicomlst[nDcm]);
 		fclose(fp_dcmLst);
 
-		// output series_info
-		fprintf(fpout, "%ld %s %f %f %f %f\\%f %c %f %s %s %s",
+		// output series_info as csv file
+		fprintf(fpout, "%ld,%s,%f,%f,%f,%f\\%f,%c,%f,%s,%s,%s",
 				tdicomData->seriesNum, tdicomData->seriesDescription,
 				tdicomData->TE, tdicomData->TR, tdicomData->flipAngle, tdicomData->xyzMM[1], tdicomData->xyzMM[2],
 				tdicomData->phaseEncodingRC, tdicomData->pixelBandwidth, (*mrifsStruct_vector)[n].dicomfile, tdicomData->imageType, (*mrifsStruct_vector)[n].pulseSequenceDetails);
@@ -307,8 +312,9 @@ void dcm2niix_fswrapper::dicomDump(const char *dicomdir, const char *series_info
       fprintf(fpout, " max-value");
     }
 #endif
+                // output as csv
 		if (extrainfo)
-			fprintf(fpout, " %s %s %s %s %f %s", tdicomData->patientName, tdicomData->studyDate, mfrCode2Str(tdicomData->manufacturer), tdicomData->manufacturersModelName, tdicomData->fieldStrength, tdicomData->deviceSerialNumber);
+			fprintf(fpout, ",%s,%s,%s,%s,%f,%s", tdicomData->patientName, tdicomData->studyDate, mfrCode2Str(tdicomData->manufacturer), tdicomData->manufacturersModelName, tdicomData->fieldStrength, tdicomData->deviceSerialNumber);
 
 		fprintf(fpout, "\n");
 	}

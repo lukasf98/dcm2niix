@@ -37,6 +37,9 @@ class dcm2niix_fswrapper {
 	// return nifti header saved in MRIFSSTRUCT
 	static nifti_1_header *getNiiHeader(void);
 
+        // interface to nii_dicom_batch.cpp::nii_getAutoScaleFactorVector()
+        static std::vector<std::vector<float>> *getAutoScaleFactorVector();
+
 	// interface to nii_dicom_batch.cpp::nii_getMrifsStructVector()
 	static std::vector<MRIFSSTRUCT> *getMrifsStructVector(void);
 
