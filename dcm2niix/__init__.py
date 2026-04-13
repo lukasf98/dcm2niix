@@ -30,4 +30,4 @@ def main(args=None, **run_kwargs):
         import sys
         args = sys.argv[1:]
     from subprocess import run
-    return run([bin] + args, **run_kwargs).returncode
+    return run([bin] + args, **run_kwargs)
