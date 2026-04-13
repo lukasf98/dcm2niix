@@ -5,8 +5,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # macos-14 is apple silicon (M1), macos-15 is apple silicon (M1)
-        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-14, macos-15]
+        # macos-14 is apple silicon (M1); macos-13 (Intel) was retired by GitHub
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-14]
     steps:
     - uses: actions/checkout@v4
       with: {fetch-depth: 0, submodules: false}
