@@ -13,7 +13,7 @@ UIH supports two ways of archiving the DWI/DTI and fMRI data. One way is one DIC
 |0019,1028  | Bandwidth PerPixel Phase Encode | FD | 1 | Useful for TotalReadoutTime | 37.6|
 |0061,1002  | Generate Private | US | 1 | Flag to generate private format file | 1|
 |0061,4002  | FOV | SH | 1 | FOV(mm) | 224*224|
-|0065,1000  | MeasurmentUID | UL | 1 | Measurement UID of Protocol | 12547865|
+|0065,1000  | MeasurementUID | UL | 1 | Measurement UID of Protocol | 12547865|
 |0065,1002  | ImageOrientationDisplayed | SH | 1 | Image Orientation Displayed | Sag or Sag>Cor|
 |0065,1003  | ReceiveCoil | LO | 1 | Receive Coil Information | H 8|
 |0065,1004  | Interpolation | SH | 1 | Interpolation | I|
@@ -37,7 +37,7 @@ UIH supports two ways of archiving the DWI/DTI and fMRI data. One way is one DIC
 |0065,1025  | Slice Gap | DS | 1 | Slice Gap | 0.0|
 |0065,1029  | AcquisitionDuration | SH | 1 | Acquisition Duration | 0.03|
 |0065,102B  | ApplicationCategory | LT | 1 | Application names available | DTI\Func|
-|0065,102C  | RepeatitionIndex | IS | 1 |   | 0|
+|0065,102C  | RepetitionIndex | IS | 1 |   | 0|
 |0065,102D  | SequenceDisplayName | ST | 1 | Sequence display name | Epi_dti_b0|
 |0065,102E  | NoiseDecovarFlag | LO | 1 | Noise decorrelation flag | PreWhite|
 |0065,102F  | ScaleFactor | FL | 1 | scale factor | 2.125|

@@ -1805,7 +1805,7 @@ tse3d: T2*/
 	json_Bool(fp, "\t\"MTState\": %s,\n", d.mtState); // BIDS suggests 0018,9020 but Siemens V-series do not populate this, alternatives are CSA or (0018,0021) CS [SK\MTC\SP]
 	// SpoilingState
 	bool isSpoiled = (d.spoiling > kSPOILING_NONE);
-	if ((d.spoiling == kSPOILING_UNKOWN) && (strstr(d.sequenceVariant, "\\SP") != NULL)) // BIDS suggests 0018,9016 Siemens V-series do not populate this, (0018,0021) CS [SK\MTC\SP]
+	if ((d.spoiling == kSPOILING_UNKNOWN) && (strstr(d.sequenceVariant, "\\SP") != NULL)) // BIDS suggests 0018,9016 Siemens V-series do not populate this, (0018,0021) CS [SK\MTC\SP]
 		isSpoiled = true;
 	if (isSpoiled)
 		json_Bool(fp, "\t\"SpoilingState\": %s,\n", true); // Siemens reports SpoilingState but not SpoilingType
@@ -2214,7 +2214,7 @@ tse3d: T2*/
 	// Philips ASL specific tags, issue533
 	// Philips ASL issue 533
 	/*
-	//see dcm_qa_philips_asl: this works for the mulit-PLD sequence, but not for other sequences. Also beware that value varies per slice, so incorrect values for descending
+	//see dcm_qa_philips_asl: this works for the multi-PLD sequence, but not for other sequences. Also beware that value varies per slice, so incorrect values for descending
 	if ( (d.aslFlags != kASL_FLAG_NONE) && (dti4D->triggerDelayTime[0] >= 0.0)) { //see BEP009 PET https://docs.google.com/document/d/1mqMLnxVdLwZjDd4ZiWFqjEAmOmfcModA_R535v3eQs0
 		bool isMultiPLD = false;
 		for (int i = 0; i < h->dim[4]; i++)
@@ -4529,7 +4529,7 @@ void writeMghGz(char *baseName, Tmgh hdr, TmghFooter footer, unsigned char *src_
 } // writeMghGz()
 
 int nii_saveMGH(char *niiFilename, struct nifti_1_header hdr, unsigned char *im, struct TDCMopts opts, struct TDICOMdata d, struct TDTI4D *dti4D, int numDTI) {
-	// FreeeSurfer does not use a permissive license, so we must reverse engineer code
+	// FreeSurfer does not use a permissive license, so we must reverse engineer code
 	// https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/MghFormat
 	int nDim = hdr.dim[0];
 	// printMessage("NRRD writer is experimental\n");
@@ -5543,7 +5543,7 @@ int nii_savejnii(char *niiFilename, struct nifti_1_header hdr, unsigned char *im
 	cJSON_AddStringToObject(jhdr, "Name", hdr.intent_name);
 	cJSON_AddStringToObject(jhdr, "NIIFormat", hdr.magic);
 
-	/* save depreciated header flags if non-trival values are provided */
+	/* save depreciated header flags if non-trivial values are provided */
 	if (hdr.vox_offset)
 		cJSON_AddNumberToObject(jhdr, "NIIByteOffset", hdr.vox_offset);
 	if (strlen(hdr.data_type))
@@ -8554,7 +8554,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 					}
 #ifndef myInstanceNumberOrderIsNotSpatial
 					// kludge to handle single volume without instance numbers (0020,0013), e.g. https://www.morphosource.org/Detail/MediaDetail/Show/media_id/8430
-					bool isInconsistenSliceDir = false;
+					bool isInconsistentSliceDir = false;
 					int slicePositionRepeats = 1; // how many times is first position repeated
 					if (nConvert > 2) {
 						float dxPrev = intersliceDistance(dcmList[dcmSort[0].indx], dcmList[dcmSort[1].indx]);
@@ -8563,19 +8563,19 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 						for (int i = 2; i < nConvert; i++) {
 							float dx = intersliceDistance(dcmList[dcmSort[0].indx], dcmList[dcmSort[i].indx]);
 							if (dx < dxPrev)
-								isInconsistenSliceDir = true;
+								isInconsistentSliceDir = true;
 							if (isSameFloatGE(dxPrev, 0.0))
 								slicePositionRepeats++;
 							dxPrev = dx;
 						}
 					}
-					if ((isInconsistenSliceDir) && (slicePositionRepeats == 1)) {
+					if ((isInconsistentSliceDir) && (slicePositionRepeats == 1)) {
 						// printWarning("Slice order as defined by instance number not spatially sequential.\n");
 						// printWarning("Attempting to reorder slices based on spatial position.\n");
 						ensureSequentialSlicePositions(hdr0.dim[3], hdr0.dim[4], dcmSort, dcmList, opts.isVerbose);
 						dx = intersliceDistance(dcmList[dcmSort[0].indx], dcmList[dcmSort[1].indx]);
 						hdr0.pixdim[3] = dx;
-						isInconsistenSliceDir = false;
+						isInconsistentSliceDir = false;
 						// code below duplicates prior code, could be written as modular function(s)
 						indx0 = dcmSort[0].indx;
 						// if (nConvert > 1)
@@ -8591,7 +8591,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 						// for (int i = 1; i < nConvert; i++)
 						//	printf("%g ", intersliceDistance(dcmList[dcmSort[0].indx],dcmList[dcmSort[i].indx]) );
 						// printf("\n");
-						isInconsistenSliceDir = false;
+						isInconsistentSliceDir = false;
 						int slicePositionRepeats = 1; // how many times is first position repeated
 						if (nConvert > 2) {
 							float dxPrev = intersliceDistance(dcmList[dcmSort[0].indx], dcmList[dcmSort[1].indx]);
@@ -8600,7 +8600,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 							for (int i = 2; i < nConvert; i++) {
 								float dx = intersliceDistance(dcmList[dcmSort[0].indx], dcmList[dcmSort[i].indx]);
 								if (dx < dxPrev)
-									isInconsistenSliceDir = true;
+									isInconsistentSliceDir = true;
 								if (isSameFloatGE(dxPrev, 0.0))
 									slicePositionRepeats++;
 								dxPrev = dx;
@@ -8612,7 +8612,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 							sliceMMarray = NULL;
 						}
 					}
-					if (isInconsistenSliceDir) {
+					if (isInconsistentSliceDir) {
 						printMessage("Unable to equalize slice distances: slice order not consistently ascending.\n");
 						printMessage("First spatial position repeated %d times\n", slicePositionRepeats);
 						printError(" Recompiling with '-DmyInstanceNumberOrderIsNotSpatial' might help.\n");
@@ -9323,7 +9323,7 @@ int compareTDCMsort(void const *item1, void const *item2) {
 
 int isSameFloatDouble(double a, double b) {
 	// Kludge for bug in 0002,0016="DIGITAL_JACKET", 0008,0070="GE MEDICAL SYSTEMS" DICOM data: Orient field (0020:0037) can vary 0.00604261 == 0.00604273 !!!
-	//  return (a == b); //niave approach does not have any tolerance for rounding errors
+	//  return (a == b); //naive approach does not have any tolerance for rounding errors
 	return (fabs(a - b) <= 0.0001);
 }
 

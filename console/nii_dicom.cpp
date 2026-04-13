@@ -948,7 +948,7 @@ struct TDICOMdata clear_dicom_data() {
 	d.numberOfArms = -1;
 	d.numberOfPointsPerArm = -1;
 	d.phaseNumber = -1; // Philips Multi-Phase ASL
-	d.spoiling = kSPOILING_UNKOWN;
+	d.spoiling = kSPOILING_UNKNOWN;
 	d.interp3D = -1;
 	for (int i = 0; i < kMaxOverlay; i++)
 		d.overlayStart[i] = 0;
@@ -8557,7 +8557,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 			else
 				d.diffCyclingModeGE = kGE_DIFF_CYCLING_ALLTR;
 		}
-		// Non-cylcing systems: all other systems including MR750, Architect, etc
+		// Non-cycling systems: all other systems including MR750, Architect, etc
 		else {
 			d.diffCyclingModeGE = kGE_DIFF_CYCLING_OFF;
 		}
