@@ -43,6 +43,7 @@ cd console && make
 - `-DUSE_OPENJPEG=OFF|GitHub|System` — JPEG2000 decompression
 - `-DUSE_JPEGLS=ON|OFF` — JPEG-LS decompression (CharLS, bundled in console/charls/)
 - `-DUSE_TURBOJPEG=ON|OFF` — lossy JPEG via libjpeg-turbo
+- `-DUSE_ZSTD=ON|OFF` — Zstandard output compression (`-z s`, requires libzstd)
 - `-DBATCH_VERSION=ON` — build dcm2niibatch (requires yaml-cpp)
 
 ## Testing
@@ -76,7 +77,7 @@ Bundled libraries (no external install needed): miniz (zlib), cJSON, NanoJPEG, C
 5. `nifti1_io_core.cpp` writes NIfTI files and JSON sidecars
 
 ### Feature macros (preprocessor)
-`myEnableJPEGLS`, `myTurboJPEG`, `myEnableJasper`, `myDisableOpenJPEG`, `myEnableJNIFTI`, `myDisableMiniZ`, `myDisableClassicJPEG`
+`myEnableJPEGLS`, `myTurboJPEG`, `myEnableJasper`, `myDisableOpenJPEG`, `myEnableJNIFTI`, `myEnableZSTD`, `myDisableMiniZ`, `myDisableClassicJPEG`, `LINKING_FREESURFER`
 
 ## Git Workflow
 

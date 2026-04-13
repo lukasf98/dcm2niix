@@ -72,6 +72,7 @@ option(USE_TURBOJPEG "Use TurboJPEG to decode classic JPEG" OFF)
 option(USE_JASPER "Build with JPEG2000 support using Jasper" OFF)
 option(USE_OPENJPEG "Build with JPEG2000 support using OpenJPEG" OFF)
 option(USE_JPEGLS "Build with JPEG-LS support using CharLS" OFF)
+option(USE_ZSTD "Build with Zstandard compression support" OFF)
 
 option(BATCH_VERSION "Build dcm2niibatch for multiple conversions" OFF)
 
@@ -194,6 +195,14 @@ else ()
     add_definitions(-DmyDisableOpenJPEG)
 endif()
 
+if(USE_ZSTD)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(ZSTD REQUIRED libzstd)
+    add_definitions(-DmyEnableZSTD)
+    target_include_directories(dcm2niix PRIVATE ${ZSTD_INCLUDE_DIRS})
+    target_link_libraries(dcm2niix ${ZSTD_LIBRARIES})
+endif()
+
 if(BATCH_VERSION)
     set(DCM2NIIBATCH_SRCS
         main_console_batch.cpp
@@ -247,6 +256,11 @@ if(BATCH_VERSION)
     if(OPENJPEG_FOUND)
         target_include_directories(dcm2niibatch PRIVATE ${OPENJPEG_INCLUDE_DIRS})
         target_link_libraries(dcm2niibatch ${OPENJPEG_LIBRARIES})
+    endif()
+
+    if(USE_ZSTD)
+        target_include_directories(dcm2niibatch PRIVATE ${ZSTD_INCLUDE_DIRS})
+        target_link_libraries(dcm2niibatch ${ZSTD_LIBRARIES})
     endif()
 
     list(APPEND PROGRAMS dcm2niibatch)

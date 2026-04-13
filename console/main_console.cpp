@@ -106,7 +106,7 @@ void showHelp(const char *argv[], struct TDCMopts opts) {
 		printf("  -z : gz compress images (y/n/3, default %c)  [y=pigz(MISSING!), n=no, 3=no,3D]\n", gzCh);
 #else
 #ifdef myDisableMiniZ
-	printf("  -z : gz compress images (y/i/n/3, default %c) [y=pigz, i=internal:zlib, n=no, 3=no,3D]\n", gzCh);
+	printf("  -z : gz compress images (y/i/n/3/o, default %c) [y=pigz, i=internal:zlib, n=no, 3=no,3D]\n", gzCh);
 #else
 	printf("  -z : gz compress images (y/i/n/3, default %c) [y=pigz, i=internal:miniz, n=no, 3=no,3D]\n", gzCh);
 #endif
@@ -125,6 +125,9 @@ void showHelp(const char *argv[], struct TDCMopts opts) {
 	printf("  %s -f mystudy%%s c:\\DICOM\\dir\n", cstr);
 	printf("  %s -o \"c:\\dir with spaces\\dir\" c:\\dicomdir\n", cstr);
 #else
+#ifdef myEnableZSTD
+	printf("  -z : compress images (y/o/s/i/n/3, default %c) [y=pigz, o=optimal pigz, s=zstd, i=internal:gz, n=no, 3=no,3D]\n", gzCh);
+#else
 #ifdef myDisableZLib
 	if (strlen(opts.pigzname) > 0)
 		printf("  -z : gz compress images (y/o/n/3, default %c) [y=pigz, o=optimal pigz, n=no, 3=no,3D]\n", gzCh);
@@ -135,6 +138,7 @@ void showHelp(const char *argv[], struct TDCMopts opts) {
 	printf("  -z : gz compress images (y/o/i/n/3, default %c) [y=pigz, o=optimal pigz, i=internal:zlib, n=no, 3=no,3D]\n", gzCh);
 #else
 	printf("  -z : gz compress images (y/o/i/n/3, default %c) [y=pigz, o=optimal pigz, i=internal:miniz, n=no, 3=no,3D]\n", gzCh);
+#endif
 #endif
 #endif
 	printf("  --big-endian : byte order (y/n/o, default o) [y=big-end, n=little-end, o=optimal/native]\n");
@@ -155,7 +159,7 @@ void showHelp(const char *argv[], struct TDCMopts opts) {
 } // showHelp()
 
 int invalidParam(int i, const char *argv[]) {
-	if (strchr("yYnNoOhHiIjlLJBb01234", argv[i][0]))
+	if (strchr("yYnNoOhHiIjlLJBbsS01234", argv[i][0]))
 		return 0;
 
 	// if (argv[i][0] != '-') return 0;
@@ -536,6 +540,12 @@ int main(int argc, const char *argv[]) {
 				i++;
 				if (invalidParam(i, argv))
 					return 0;
+#ifdef myEnableZSTD
+				if ((argv[i][0] == 's') || (argv[i][0] == 'S')) {
+					opts.isGz = false;
+					opts.isZStd = true; // ZStd
+				} else
+#endif
 				if ((argv[i][0] == '3')) {
 					opts.isGz = false; // uncompressed 3D
 					opts.isSave3D = true;

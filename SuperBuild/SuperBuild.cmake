@@ -33,6 +33,7 @@ option(USE_JASPER "Build with JPEG2000 support using Jasper" OFF)
 set(USE_OPENJPEG "OFF" CACHE STRING "Build with JPEG2000 support using OpenJPEG.")
 set_property(CACHE USE_OPENJPEG PROPERTY STRINGS  "OFF;GitHub;System;Custom")
 option(USE_JPEGLS "Build with JPEG-LS support using CharLS" OFF)
+option(USE_ZSTD "Build with Zstandard compression support" OFF)
 option(USE_JNIFTI "Build with JNIFTI support" ON)
 
 option(BATCH_VERSION "Build dcm2niibatch for multiple conversions" OFF)
@@ -163,6 +164,7 @@ ExternalProject_Add(console
         -DUSE_TURBOJPEG:BOOL=${USE_TURBOJPEG}
         -DUSE_JASPER:BOOL=${USE_JASPER}
         -DUSE_JPEGLS:BOOL=${USE_JPEGLS}
+        -DUSE_ZSTD:BOOL=${USE_ZSTD}
         -DUSE_JNIFTI:BOOL=${USE_JNIFTI}
         # ZLIB
         -DZLIB_IMPLEMENTATION:STRING=${ZLIB_IMPLEMENTATION}

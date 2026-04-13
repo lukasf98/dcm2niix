@@ -42,6 +42,9 @@
 #include "base64.h"
 #include "cJSON.h"
 #endif
+#ifdef myEnableZSTD
+#include <zstd.h>
+#endif
 #include <ctype.h> //toupper
 #include <float.h>
 #include <math.h>
@@ -3964,8 +3967,7 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 					strcat(outname, "NA");
 			}
 			if (f == 'W') { // Weird includes personal data in filename patientWeight
-				printf("polo %s\n", dcm.bodyPartExamined);
-				snprintf(newstr, PATH_MAX, "part%sdob%sg%cwt%d", dcm.bodyPartExamined, dcm.patientBirthDate, dcm.patientSex, (int)round(dcm.patientWeight));
+					snprintf(newstr, PATH_MAX, "part%sdob%sg%cwt%d", dcm.bodyPartExamined, dcm.patientBirthDate, dcm.patientSex, (int)round(dcm.patientWeight));
 				if (strstr(dcm.institutionName, "Richland"))
 					strcat(newstr, "R");
 				strcat(outname, newstr);
@@ -4256,6 +4258,9 @@ void nii_createDummyFilename(char *niiFilename, struct TDCMopts opts) {
 		strcat(niiFilename, ".bnii'");
 #endif
 	} else {
+		if (opts.isZStd)
+			strcat(niiFilename, ".nii.zst'");
+		else
 		if (opts.isGz)
 			strcat(niiFilename, ".nii.gz'");
 		else
@@ -4637,6 +4642,9 @@ int nii_saveNRRD(char *niiFilename, struct nifti_1_header hdr, unsigned char *im
 	// printMessage("NRRD writer is experimental\n");
 	if (nDim < 1)
 		return EXIT_FAILURE;
+	if (opts.isZStd) {
+		printWarning("zStd not supported by NRRD. Saving uncompressed.\n");
+	}
 	bool isGz = opts.isGz;
 	size_t imgsz = nii_ImgBytes(hdr);
 	if ((isGz) && (imgsz >= 2147483647)) {
@@ -5743,6 +5751,52 @@ int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im,
 #else
 	compiler error : unable to determine is 32 or 64 bit
 #endif
+#ifdef myEnableZSTD
+	if (opts.isZStd) {
+		if (!opts.isSaveNativeEndian)
+			swapEndian(&hdr, im, true); // byte-swap endian (e.g. little->big)
+		char fname[2048] = {""};
+		strcpy(fname, niiFilename);
+		strcat(fname, ".nii.zst");
+		unsigned long hdrPadBytes = sizeof(hdr) + 4; // 348 byte header + 4 byte pad
+		size_t srcLen = hdrPadBytes + imgsz;
+		unsigned char *pSrc = (unsigned char *)malloc(srcLen);
+		if (!pSrc)
+			return EXIT_FAILURE;
+		// write header + 4-byte pad
+		memcpy(pSrc, &hdr, sizeof(hdr));
+		memset(pSrc + sizeof(hdr), 0, 4);
+		// write image data
+		memcpy(pSrc + hdrPadBytes, im, imgsz);
+		size_t cmpBound = ZSTD_compressBound(srcLen);
+		unsigned char *pCmp = (unsigned char *)malloc(cmpBound);
+		if (!pCmp) {
+			free(pSrc);
+			return EXIT_FAILURE;
+		}
+		int zLevel = 3; // zstd default
+		if ((opts.gzLevel > 0) && (opts.gzLevel <= 22))
+			zLevel = opts.gzLevel;
+		size_t cmpLen = ZSTD_compress(pCmp, cmpBound, pSrc, srcLen, zLevel);
+		free(pSrc);
+		if (ZSTD_isError(cmpLen)) {
+			printError("Zstd compression failed: %s\n", ZSTD_getErrorName(cmpLen));
+			free(pCmp);
+			return EXIT_FAILURE;
+		}
+		FILE *fp = fopen(fname, "wb");
+		if (!fp) {
+			free(pCmp);
+			return EXIT_FAILURE;
+		}
+		fwrite(pCmp, 1, cmpLen, fp);
+		fclose(fp);
+		free(pCmp);
+		if (!opts.isSaveNativeEndian)
+			swapEndian(&hdr, im, false); // unbyte-swap endian (e.g. big->little)
+		return EXIT_SUCCESS;
+	}
+#endif
 #ifndef myDisableZLib
 	if ((opts.isGz) && (strlen(opts.pigzname) < 1) && ((imgsz + hdr.vox_offset) >= kMaxGz)) { // use internal compressor
 		printWarning("Saving uncompressed data: internal compressor unable to process such large files.\n");
@@ -6475,11 +6529,16 @@ int nii_saveNII3Deq(char *niiFilename, struct nifti_1_header hdr, unsigned char 
 	int bytesPerVoxel = 2;
 	if (hdr.datatype == DT_FLOAT32)
 		bytesPerVoxel = 4;
+	else if (hdr.datatype == DT_UINT8)
+		bytesPerVoxel = 1;
 	else if (hdr.datatype == DT_RGB24) {
 		bytesPerVoxel = 1;
 		nVox2D *= 3;
 	}
-	uint8_t *out8 = (uint8_t *)malloc(nVox2D * outSlices * bytesPerVoxel);
+	size_t outBytes = (size_t)nVox2D * outSlices * bytesPerVoxel;
+	uint8_t *out8 = (uint8_t *)malloc(outBytes);
+	if (!out8)
+		return EXIT_FAILURE;
 	float *out32 = (float *)out8;
 	short *out16 = (short *)out8;
 	int isSeg = d.modality == kMODALITY_SEG;
@@ -6525,7 +6584,7 @@ int nii_saveNII3Deq(char *niiFilename, struct nifti_1_header hdr, unsigned char 
 		if (hdr.datatype == DT_FLOAT32) {
 			for (int v = 0; v < nVox2D; v++)
 				out32[outVox + v] =  (in32[lowVox + v] * lowWt) + (in32[hiVox + v] * hiWt);
-		} else if (hdr.datatype == DT_RGB24) {
+		} else if ((hdr.datatype == DT_RGB24) || (hdr.datatype == DT_UINT8)) {
 			for (int v = 0; v < nVox2D; v++)
 				out8[outVox + v] = round(((float)in8[lowVox + v] * lowWt) + (float)in8[hiVox + v] * hiWt);
 		} else {
@@ -10654,6 +10713,7 @@ void setDefaultOpts(struct TDCMopts *opts, const char *argv[]) { // either "setD
 	opts->isCrop = false;
 	opts->isRotate3DAcq = true;
 	opts->isGz = false;
+	opts->isZStd = false;
 	opts->isSaveNativeEndian = true;
 	opts->isAddNamePostFixes = true; // e.g. "_e2" added for second echo
 	opts->isTestx0021x105E = false;	 // GE test slice times stored in 0021,105E
@@ -10788,8 +10848,11 @@ void saveIniFile(struct TDCMopts opts) {
 void dcmListDump(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmList[], struct TSearchList *nameList, struct TDCMopts opts) {
         FILE *fp = stdout;
 	const char *imagelist = getenv("MGH_DCMUNPACK_IMAGELIST");
-	if (imagelist != NULL)
+	if (imagelist != NULL) {
 	        fp = fopen(imagelist, "a");
+	        if (!fp)
+	                fp = stdout;
+	}
 	for (int i = 0; i < nConvert; i++) {
 		int indx = dcmSort[i].indx;
 		mrifsStruct.dicomlst[i] = new char[strlen(nameList->str[indx]) + 1];

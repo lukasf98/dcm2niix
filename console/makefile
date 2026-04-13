@@ -37,6 +37,12 @@ ifneq "$(JNIfTI)" "0"
 	JSFLAGS=-DmyEnableJNIFTI base64.cpp cJSON.cpp
 endif
 
+#run "ZSTD=1 make" to enable Zstandard build
+ZSTDFLAGS=
+ifeq "$(ZSTD)" "1"
+	ZSTDFLAGS=-DmyEnableZSTD $(shell pkg-config --cflags --libs libzstd 2>/dev/null || echo "-lzstd")
+endif
+
 ifneq ($(OS),Windows_NT)
 	OS = $(shell uname)
  	ifeq "$(OS)" "Darwin"
@@ -54,7 +60,7 @@ ifneq ($(OS),Windows_NT)
 	endif
 endif
 all:
-	g++ $(CFLAGS) -I. $(JSFLAGS) $(JFLAGS) $(LFLAGS) $(UFILES)
+	g++ $(CFLAGS) -I. $(JSFLAGS) $(JFLAGS) $(ZSTDFLAGS) $(LFLAGS) $(UFILES)
 	@if [ "$$(uname)" = "Darwin" ]; then \
 		strip -x dcm2niix; \
 	fi
