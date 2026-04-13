@@ -4951,6 +4951,8 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 	float maxPatientPosition[4] = {NAN, NAN, NAN, NAN};
 	// end issue 372
 	// float frameAcquisitionDuration = 0.0; //issue369
+	float XYSpacing[4] = {NAN, NAN, NAN, NAN};
+	bool iskXYSpacingVaries = false;
 	float patientPositionPrivate[4] = {NAN, NAN, NAN, NAN};
 	float patientPosition[4] = {NAN, NAN, NAN, NAN}; // used to compute slice direction for Philips 4D
 	// float patientPositionPublic[4] = {NAN, NAN, NAN, NAN}; //used to compute slice direction for Philips 4D
@@ -6494,6 +6496,14 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 		case kXYSpacing: {
 			float yx[3];
 			dcmMultiFloat(lLength, (char *)&buffer[lPos], 2, yx);
+			if (isnan(XYSpacing[1])) {
+				XYSpacing[1] = yx[1];
+				XYSpacing[2] = yx[2];
+			} else if ((!isSameFloat(XYSpacing[1], yx[1])) || (!isSameFloat(XYSpacing[2], yx[2]))) {
+				if (!iskXYSpacingVaries)
+					printWarning(" PixelSpacing (0028,0030) varies %g×%g != %g×%g (issue 1009)\n", XYSpacing[1], XYSpacing[2], yx[1], yx[2]);
+				iskXYSpacingVaries = true;
+			}
 			d.xyzMM[1] = yx[2];
 			d.xyzMM[2] = yx[1];
 			break;
@@ -8695,6 +8705,9 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 	}
 	if (d.offsetTableItems >= kMaxSlice2D) {
 		printWarning("DICOM image fragments %d exceed capacity %d\n", d.offsetTableItems, kMaxSlice2D);
+		d.isValid = false;
+	}
+	if (iskXYSpacingVaries) {
 		d.isValid = false;
 	}
 #ifndef SHRT_MAX
