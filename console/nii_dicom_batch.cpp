@@ -6898,12 +6898,22 @@ void checkSliceTiming(struct TDICOMdata *d, struct TDICOMdata *d1, int verbose, 
 		return; // fine: single-band calibration data, the slice timing WILL exceed the TR
 	if ((nConvert == (hdr->dim[3] * hdr->dim[4])) && ((maxT-minT) <= TRms) && ((maxT-minT) > 0.0))
 		return; // assume issue875
+	// issue 1007: report all values in ms for consistency with TR.
+	// minT/maxT are in sec for HHMMSS vendors (d converted at line 6828), ms otherwise.
+	// minT1/maxT1 are raw HHMMSS for HHMMSS vendors, ms otherwise; within-minute diffs equal seconds.
+	float minTms = minT, maxTms = maxT, minT1ms = minT1, maxT1ms = maxT1;
+	if (isSliceTimeHHMMSS) {
+		minTms = minT * 1000.0;
+		maxTms = maxT * 1000.0;
+		minT1ms = dicomTimeToSec(minT1) * 1000.0;
+		maxT1ms = dicomTimeToSec(maxT1) * 1000.0;
+	}
 	if (isIssue870) {
-		printWarning("Issue870: Slice timing range of first volume: range %g..%g, TA= %g, TR=%g ms)\n", minT, maxT, maxT-minT, TRms);
-		printWarning("Issue870: Slice timing range of 2nd volume: range %g..%g, TA= %g, TR=%g ms)\n", minT1, maxT1, maxT1-minT1, TRms);
+		printWarning("Issue870: Slice timing range of first volume: range %g..%g ms, TA=%g ms, TR=%g ms\n", minTms, maxTms, maxTms - minTms, TRms);
+		printWarning("Issue870: Slice timing range of 2nd volume: TA=%g ms, TR=%g ms\n", maxT1ms - minT1ms, TRms);
 	} else if (verbose > 1) {
-		printMessage("Slice timing range of first volume: range %g..%g, TR=%g ms)\n", minT, maxT, TRms);
-		printMessage("Slice timing range of 2nd volume: range %g..%g, TR=%g ms)\n", minT1, maxT1, TRms);
+		printMessage("Slice timing range of first volume: range %g..%g ms, TR=%g ms\n", minTms, maxTms, TRms);
+		printMessage("Slice timing range of 2nd volume: TA=%g ms, TR=%g ms\n", maxT1ms - minT1ms, TRms);
 	}
 	int mbFactor = 0;
 	if ((minT1 < maxT1) && (minT1 > 0.0) && ((maxT1 - minT1) <= TRms)) { // issue 429: 2nd volume may not start from zero
@@ -6936,10 +6946,15 @@ void checkSliceTiming(struct TDICOMdata *d, struct TDICOMdata *d1, int verbose, 
 		return;
 	}
 	// 1st image corrupted, but 2nd looks ok - substitute values from 2nd image
+	// issue 1007: for HHMMSS manufacturers (e.g. UIH) d was converted to msec above
+	// but d1 is still in sec (within-minute HHMMSS diffs), so scale before substitution
+	float d1scale = isSliceTimeHHMMSS ? 1000.0 : 1.0;
 	for (int i = 0; i < kMaxEPI3D; i++) {
-		d->CSA.sliceTiming[i] = d1->CSA.sliceTiming[i];
-		if (d1->CSA.sliceTiming[i] < 0.0)
+		if (d1->CSA.sliceTiming[i] < 0.0) {
+			d->CSA.sliceTiming[i] = d1->CSA.sliceTiming[i];
 			break;
+		}
+		d->CSA.sliceTiming[i] = d1->CSA.sliceTiming[i] * d1scale;
 	}
 	if ((mbFactor > 1) && (mbFactor > d1->CSA.multiBandFactor)) {
 		printWarning("Issue870 ParallelReductionFactorOutOfPlane estimated as %d but DICOM reports %d\n", mbFactor, d1->CSA.multiBandFactor);

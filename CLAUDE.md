@@ -58,7 +58,7 @@ No automated test suite. Validate manually against QA datasets in `dcm_qa/`, `dc
 All source is in `console/`. Key files:
 
 - **main_console.cpp** — entry point, CLI argument parsing, orchestrates conversion
-- **nii_dicom.cpp** (~374k lines) — DICOM parser. Reads headers, extracts metadata into `TDICOMdata` struct, handles all vendor-specific tag parsing. This is the core of the project
+- **nii_dicom.cpp** (~8.8k lines) — DICOM parser. Reads headers, extracts metadata into `TDICOMdata` struct, handles all vendor-specific tag parsing. This is the core of the project
 - **nii_dicom.h** — defines `TDICOMdata` (280+ fields), `TDTI4D` (diffusion/4D params), `TCSAdata` (Siemens CSA). All key data structures live here
 - **nii_dicom_batch.cpp** — batch processing: groups DICOMs into series, merges slices into 3D/4D volumes, assembles the final NIfTI
 - **nifti1_io_core.cpp** — NIfTI writer, BIDS JSON sidecar generation, image reorientation
