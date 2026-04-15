@@ -6784,8 +6784,9 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 			break;
 		case kEffectiveTE: {
 			TE = dcmFloatDouble(lLength, &buffer[lPos], d.isLittleEndian);
-			if (d.TE <= 0.0)
-				d.TE = TE;
+			// handle multi-echo packed into single enhanced DICOM PR 988
+			//if (d.TE <= 0.0)
+			d.TE = TE;
 			break;
 		}
 		case kTI:
