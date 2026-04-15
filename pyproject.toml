@@ -17,6 +17,10 @@ wheel.py-api = "cp38"
 write_to = "dcm2niix/_dist_ver.py"
 write_to_template = "__version__ = '{version}'\n"
 
+[tool.scikit-build.cmake.define]
+USE_JPEGLS = "ON"
+USE_OPENJPEG = "GitHub"
+
 [tool.cibuildwheel]
 archs = "auto64"
 build = "cp38-*"
