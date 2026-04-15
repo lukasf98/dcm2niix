@@ -7226,7 +7226,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 			//  ((d.manufacturer == kMANUFACTURER_PHILIPS) && !is2005140FSQ)) &&
 			//  (isAtFirstPatientPosition || isnan(d.patientPosition[1])))
 			// if((d.manufacturer == kMANUFACTURER_SIEMENS) || ((d.manufacturer == kMANUFACTURER_PHILIPS) && !is2005140FSQ))
-			if (!isDWI_UIH) { // issue836
+			if ((!isDWI_UIH) && (d.manufacturer != kMANUFACTURER_UIH)) { // issue836/993: UIH uses private tag (0065,1037); skip (0018,9089) regardless of tag order
 				// if ((d.manufacturer == kMANUFACTURER_MEDISO) || (d.manufacturer == kMANUFACTURER_TOSHIBA) || (d.manufacturer == kMANUFACTURER_CANON) || (d.manufacturer == kMANUFACTURER_HITACHI) || (d.manufacturer == kMANUFACTURER_SIEMENS) || (d.manufacturer == kMANUFACTURER_PHILIPS)) {
 				// for kMANUFACTURER_HITACHI see https://nciphub.org/groups/qindicom/wiki/StandardcompliantenhancedmultiframeDWI
 				float v[4];
