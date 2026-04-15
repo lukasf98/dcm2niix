@@ -7444,6 +7444,18 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 		case kOriginalAttributesSq:
 			if (lLength > 8)
 				break; // issue639: we will skip entire icon if there is an explicit length
+			// issue 989: skip empty sequences (common in anonymized data, e.g. explicit length 0).
+			// Without this check we latch the filter but no items fire unNest to clear it,
+			// so every subsequent tag is wrongly treated as ignored Original Attributes.
+			if (d.isExplicitVR && (buffer[lPos] == 'S') && (buffer[lPos + 1] == 'Q')) {
+				uint32_t sqLen;
+				if (d.isLittleEndian)
+					sqLen = buffer[lPos + 4] | (buffer[lPos + 5] << 8) | (buffer[lPos + 6] << 16) | (buffer[lPos + 7] << 24);
+				else
+					sqLen = buffer[lPos + 7] | (buffer[lPos + 6] << 8) | (buffer[lPos + 5] << 16) | (buffer[lPos + 4] << 24);
+				if (sqLen == 0)
+					break;
+			}
 			sqDepth04000561 = sqDepth;
 			break;
 		case kWaveformSq:

@@ -79,6 +79,20 @@ Bundled libraries (no external install needed): miniz (zlib), cJSON, NanoJPEG, C
 ### Feature macros (preprocessor)
 `myEnableJPEGLS`, `myTurboJPEG`, `myEnableJasper`, `myDisableOpenJPEG`, `myEnableJNIFTI`, `myEnableZSTD`, `myDisableMiniZ`, `myDisableClassicJPEG`, `LINKING_FREESURFER`
 
+### Sequence-filter quirks in `nii_dicom.cpp`
+
+Several DICOM sequences are "filtered out" during parsing because their contents are reference/historical data that would corrupt the main header (see issues #599, #655, #639):
+- `(0400,0561) OriginalAttributesSequence` — tracked by `sqDepth04000561` (depth-aware)
+- `(0008,9092) ReferencedImageEvidenceSequence` — tracked by `is00089092SQ` (boolean, cleared on any unNest — crude but generally OK because this SQ is small and shallow)
+- `(0088,0200) IconImageSequence` — tracked by `sqDepthIcon`
+
+**Known risk:** These latches assume the parser will encounter item delimiters to unlatch. An **empty** sequence (explicit length 0, common in anonymized DICOMs) has no items, so the latch never clears and every subsequent tag is silently dropped. Fix for issue #989 peeks at the raw 4-byte SQ length at `case kOriginalAttributesSq` and skips latching when the length is 0.
+
+**Re-evaluate this fix if:**
+- A vendor or anonymizer ships a populated `(0400,0561)` with an *explicit non-zero* length that we incorrectly enter (the current `lLength > 8` guard already covers most cases, but explicit-length SQs under 8 bytes could regress).
+- A regression surfaces where fields *inside* `(0400,0561)` now leak into the header — that would mean the empty-check is misfiring on a non-empty SQ, likely due to implicit-VR data where the byte-peek is unsafe.
+- We add support for sequences that genuinely *need* the filter to persist across an empty SQ (none known today).
+
 ## Git Workflow
 
 - **master** — stable releases only, no PRs accepted
