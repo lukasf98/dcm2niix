@@ -56,7 +56,7 @@ classifiers = [
 dynamic = ["version"]
 
 [project.scripts]
-dcm2niix = "dcm2niix:main"
+dcm2niix = "dcm2niix:_cli"
 
 [project.urls]
 repository = "https://github.com/rordenlab/dcm2niix"

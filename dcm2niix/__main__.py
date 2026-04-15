@@ -1,3 +1,3 @@
-from . import main
+from . import _cli
 
-main()
+_cli()

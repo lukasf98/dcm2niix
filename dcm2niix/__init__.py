@@ -21,13 +21,21 @@ bin = str(bin_path)
 
 def main(args=None, **run_kwargs):
     """
+    Library entrypoint for running the dcm2niix binary.
+
     Arguments:
       args: defaults to `sys.argv[1:]`.
-      **run_kwargs: passed to `subprocess.run`.
-    Returns: `int` exit code from dcm2niix execution.
+      **run_kwargs: passed to `subprocess.run` (e.g. `capture_output=True`, `check=True`).
+    Returns: `subprocess.CompletedProcess` (has `.returncode`, `.stdout`, `.stderr`).
     """
     if args is None:
         import sys
         args = sys.argv[1:]
     from subprocess import run
-    return run([bin] + args, **run_kwargs).returncode
+    return run([bin] + args, **run_kwargs)
+
+
+def _cli():
+    """Console script entrypoint. Propagates the binary's exit code."""
+    import sys
+    sys.exit(main().returncode)
