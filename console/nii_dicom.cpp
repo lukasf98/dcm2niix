@@ -6837,6 +6837,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 			break;
 		case kPercentSampling:
 			d.percentSampling = dcmStrFloat(lLength, &buffer[lPos]);
+			break;
 		case kPhaseFieldofView:
 			d.phaseFieldofView = dcmStrFloat(lLength, &buffer[lPos]);
 			break;
@@ -7153,6 +7154,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 			for (int i = 0; i < nFloat32; i++)
 				if (v[i] > 0.0)
 					d.numberOfTR++;
+			break;
 		}
 		case kMRfMRIStatusIndicationPhilips: { // fmri volume number
 			if (d.manufacturer != kMANUFACTURER_PHILIPS)
@@ -7439,6 +7441,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 				d.isDeepLearning = true;
 				dcmStr(lLength, &buffer[lPos], d.deepLearningText, true);
 			}
+			break;
 		}
 		case kPrivatePerFrameSq:
 			if (d.manufacturer != kMANUFACTURER_PHILIPS)
@@ -7746,6 +7749,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 			if (d.manufacturer != kMANUFACTURER_GE)
 				break;
 			tableDeltaGE = dcmStrFloat(lLength, &buffer[lPos]);
+			break;
 		}
 		case kMRTablePositionInformation: { // LO issue726
 			if (d.manufacturer != kMANUFACTURER_GE)

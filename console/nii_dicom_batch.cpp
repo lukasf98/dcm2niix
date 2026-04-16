@@ -4452,7 +4452,7 @@ int pigz_File(char *fname, struct TDCMopts opts, size_t imgsz) {
 		strcat(command, newstr);
 	} else {
 		char newstr[256];
-		snprintf(newstr, 256, "\"%s --no-time -n \"", blockSize);
+		snprintf(newstr, 256, "\"%.*s --no-time -n \"", 200, blockSize);
 		// 749 snprintf(newstr, 256, "\"%s -n '", blockSize);
 		strcat(command, newstr);
 	}
@@ -5063,7 +5063,7 @@ int jnifti_lookup(int *keyid, int keylen, int val) {
 void write_ubjsonint(void *dat, int bytelen, int count, FILE *fp) {
 	void *tmp = malloc(count * bytelen);
 	memcpy(tmp, dat, count * bytelen);
-	if (!&littleEndianPlatform) {
+	if (!littleEndianPlatform()) {
 		if (bytelen == 2)
 			nifti_swap_2bytes(count, tmp);
 		else if (bytelen == 4)
