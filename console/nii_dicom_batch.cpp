@@ -4500,7 +4500,8 @@ int pigz_File(char *fname, struct TDCMopts opts, size_t imgsz) {
 	if (ret == -1)
 		printWarning("Failed to execute: %s\n", command);
 #endif // else linux
-	printMessage("Compress: %s\n", command);
+	if (opts.isVerbose > 1)
+		printMessage("Compress: %s\n", command);
 	return EXIT_SUCCESS;
 } // pigz_File()
 
