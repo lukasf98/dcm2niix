@@ -797,7 +797,7 @@ struct TDICOMdata clear_dicom_data() {
 	strcpy(d.coilName, "");
 	strcpy(d.coilElements, "");
 	strcpy(d.pulseSequenceName, "");
-	// strcpy(d.radiopharmaceutical, "");
+	strcpy(d.radiopharmaceutical, "");
 	strcpy(d.convolutionKernel, "");
 	strcpy(d.parallelAcquisitionTechnique, "");
 	strcpy(d.imageOrientationText, "");
@@ -805,6 +805,8 @@ struct TDICOMdata clear_dicom_data() {
 	strcpy(d.unitsPT, "");
 	strcpy(d.decayCorrection, "");
 	strcpy(d.attenuationCorrectionMethod, "");
+	strcpy(d.randomsCorrectionMethod, "");
+	strcpy(d.scatterCorrectionMethod, "");
 	strcpy(d.reconstructionMethod, "");
 	d.phaseEncodingLines = 0;
 	//~ d.patientPositionSequentialRepeats = 0;
@@ -4524,7 +4526,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 #define kScanOptions 0x0018 + (0x0022 << 16)
 #define kMRAcquisitionType 0x0018 + (0x0023 << 16)
 #define kSequenceName 0x0018 + (0x0024 << 16)
-//#define kRadiopharmaceutical 0x0018 + (0x0031 << 16) // LO
+#define kRadiopharmaceutical 0x0018 + (0x0031 << 16) // LO, often inside (0054,0016) RadiopharmaceuticalInformationSequence
 #define kZThick 0x0018 + (0x0050 << 16)
 #define kTR 0x0018 + (0x0080 << 16)
 #define kTE 0x0018 + (0x0081 << 16)
@@ -4723,7 +4725,9 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 #define kRadiopharmaceuticalInformationSQ 0x0054 + (0x0016 << 16)
 #define kLocationsInAcquisition 0x0054 + (0x0081 << 16)
 #define kUnitsPT 0x0054 + (0x1001 << 16)					 // CS
+#define kRandomsCorrectionMethod 0x0054 + (0x1100 << 16)	 // CS
 #define kAttenuationCorrectionMethod 0x0054 + (0x1101 << 16) // LO
+#define kScatterCorrectionMethod 0x0054 + (0x1105 << 16)	 // LO
 #define kDecayCorrection 0x0054 + (0x1102 << 16)			 // CS
 #define kReconstructionMethod 0x0054 + (0x1103 << 16)		 // LO
 #define kFrameReferenceTime 0x0054 + (0x1300 << 16)			 // DS
@@ -6915,9 +6919,15 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 		case kIntercept:
 			d.intenIntercept = dcmStrFloat(lLength, &buffer[lPos]);
 			break;
-		//case kRadiopharmaceutical:
-		//	dcmStr(lLength, &buffer[lPos], d.radiopharmaceutical);
-		//	break;
+		case kRadiopharmaceutical:
+			dcmStr(lLength, &buffer[lPos], d.radiopharmaceutical);
+			// GE packs "FDG -- fluorodeoxyglucose"; strip at " -- " to get the short tracer name
+			{
+				char *sep = strstr(d.radiopharmaceutical, " -- ");
+				if (sep)
+					*sep = '\0';
+			}
+			break;
 		case kZThick:
 			d.xyzMM[3] = dcmStrFloat(lLength, &buffer[lPos]);
 			d.zThick = d.xyzMM[3];
@@ -7022,6 +7032,12 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 		}
 		case kAttenuationCorrectionMethod: // LO
 			dcmStr(lLength, &buffer[lPos], d.attenuationCorrectionMethod);
+			break;
+		case kRandomsCorrectionMethod: // CS
+			dcmStr(lLength, &buffer[lPos], d.randomsCorrectionMethod);
+			break;
+		case kScatterCorrectionMethod: // LO
+			dcmStr(lLength, &buffer[lPos], d.scatterCorrectionMethod);
 			break;
 		case kDecayCorrection: // CS
 			dcmStr(lLength, &buffer[lPos], d.decayCorrection);

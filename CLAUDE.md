@@ -95,6 +95,10 @@ Several DICOM sequences are "filtered out" during parsing because their contents
 
 `TimeZero` in the BIDS PET sidecar must always equal `SeriesTime`, never `AcquisitionTime`. For delayed reconstructions (or any series where acquisition trails the injection clock), using `AcquisitionTime` desynchronizes `TimeZero` from frame timing and breaks downstream PET pipelines (issue #983).
 
+`ImageDecayCorrectionTime` has two branches keyed off `(0054,1102) DecayCorrection`: `START` emits 0 (corrected to series start = TimeZero); `ADMIN` emits `RadiopharmaceuticalStartTime - TimeZero` (corrected to injection time, expressed relative to TimeZero per BIDS). `NONE` emits nothing.
+
+`TracerName` comes from `(0018,0031) Radiopharmaceutical` (often nested inside `RadiopharmaceuticalInformationSequence`). GE packs this as `"FDG -- fluorodeoxyglucose"` (short name + long description separated by `" -- "`); the parser strips at `" -- "` to emit only the short tracer name. Do not remove this stripping — GE PET data depends on it for clean BIDS `TracerName` values.
+
 **Known risk:** These latches assume the parser will encounter item delimiters to unlatch. An **empty** sequence (explicit length 0, common in anonymized DICOMs) has no items, so the latch never clears and every subsequent tag is silently dropped. Fix for issue #989 peeks at the raw 4-byte SQ length at `case kOriginalAttributesSq` and skips latching when the length is 0.
 
 **Re-evaluate this fix if:**

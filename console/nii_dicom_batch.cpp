@@ -1594,8 +1594,8 @@ tse3d: T2*/
 	if ((d.isRealIsPhaseMapHz) && ((d.manufacturer == kMANUFACTURER_GE) || (d.isHasReal)))
 		fprintf(fp, "\t\"Units\": \"Hz\",\n");
 	// PET ISOTOPE MODULE ATTRIBUTES
+	json_Str(fp, "\t\"TracerName\": \"%s\",\n", d.radiopharmaceutical);
 	json_Str(fp, "\t\"TracerRadionuclide\": \"%s\",\n", d.tracerRadionuclide);
-	//json_Str(fp, "\t\"Radiopharmaceutical\": \"%s\",\n", d.radiopharmaceutical);
 	json_Float(fp, "\t\"RadionuclidePositronFraction\": %g,\n", d.radionuclidePositronFraction);
 	// BIDS InjectedRadioactivity is MBq; DICOM (0018,1074) RadionuclideTotalDose is Bq
 	json_Float(fp, "\t\"InjectedRadioactivity\": %.8g,\n", d.radionuclideTotalDose / 1.0e6);
@@ -1611,6 +1611,9 @@ tse3d: T2*/
 	json_Str(fp, "\t\"Units\": \"%s\",\n", d.unitsPT); // https://github.com/bids-standard/bids-specification/pull/773
 	json_Str(fp, "\t\"DecayCorrection\": \"%s\",\n", d.decayCorrection);
 	json_Str(fp, "\t\"AttenuationCorrectionMethod\": \"%s\",\n", d.attenuationCorrectionMethod);
+	json_Str(fp, "\t\"AttenuationCorrection\": \"%s\",\n", d.attenuationCorrectionMethod); // BIDS PET spelling
+	json_Str(fp, "\t\"RandomsCorrectionMethod\": \"%s\",\n", d.randomsCorrectionMethod);
+	json_Str(fp, "\t\"ScatterCorrectionMethod\": \"%s\",\n", d.scatterCorrectionMethod);
 	json_Str(fp, "\t\"ReconstructionMethod\": \"%s\",\n", d.reconstructionMethod);
 
 	// START issue 802
@@ -1810,6 +1813,13 @@ tse3d: T2*/
 			fprintf(fp, "\t\"ImageDecayCorrected\": %s,\n", corrected ? "true" : "false");
 			if (corrected && (strcmp(d.decayCorrection, "START") == 0))
 				fprintf(fp, "\t\"ImageDecayCorrectionTime\": 0,\n");
+			else if (corrected && (strcmp(d.decayCorrection, "ADMIN") == 0) && (d.radiopharmaceuticalStartTime > 0.0)) {
+				// ADMIN: decay-corrected to injection time; report relative to TimeZero
+				double injSec = dicomTimeToSec(d.radiopharmaceuticalStartTime);
+				double t0Sec = dicomTimeToSec(t);
+				if ((injSec >= 0) && (t0Sec >= 0))
+					fprintf(fp, "\t\"ImageDecayCorrectionTime\": %g,\n", injSec - t0Sec);
+			}
 		}
 	}
 	// CT parameters
