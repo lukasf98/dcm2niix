@@ -1611,7 +1611,16 @@ tse3d: T2*/
 	json_Str(fp, "\t\"Units\": \"%s\",\n", d.unitsPT); // https://github.com/bids-standard/bids-specification/pull/773
 	json_Str(fp, "\t\"DecayCorrection\": \"%s\",\n", d.decayCorrection);
 	json_Str(fp, "\t\"AttenuationCorrectionMethod\": \"%s\",\n", d.attenuationCorrectionMethod);
-	json_Str(fp, "\t\"AttenuationCorrection\": \"%s\",\n", d.attenuationCorrectionMethod); // BIDS PET spelling
+	// BIDS "AttenuationCorrection" expects a method token (e.g. "measured");
+	// Siemens packs additional detail after a comma (e.g. "measured,AC_CT_Brain")
+	// so keep the full string in AttenuationCorrectionMethod above and emit the
+	// pre-comma token here.
+	char attenBIDS[kDICOMStr];
+	snprintf(attenBIDS, sizeof(attenBIDS), "%s", d.attenuationCorrectionMethod);
+	char *commaAt = strchr(attenBIDS, ',');
+	if (commaAt != NULL)
+		*commaAt = '\0';
+	json_Str(fp, "\t\"AttenuationCorrection\": \"%s\",\n", attenBIDS); // BIDS PET spelling
 	json_Str(fp, "\t\"RandomsCorrectionMethod\": \"%s\",\n", d.randomsCorrectionMethod);
 	json_Str(fp, "\t\"ScatterCorrectionMethod\": \"%s\",\n", d.scatterCorrectionMethod);
 	json_Str(fp, "\t\"ReconstructionMethod\": \"%s\",\n", d.reconstructionMethod);
@@ -1665,7 +1674,7 @@ tse3d: T2*/
 			strcat(reconMethodName, "VUE Point HD with regularization (smoothing) ");
 		if (strstr(d.reconstructionMethod, "BLOB"))
 			strcat(reconMethodName, "3D spherically symmetric basis function ");
-		if (strstr(d.reconstructionMethod, "FilteredBackProjection"))
+		if (strstr(d.reconstructionMethod, "FilteredBack") || strstr(d.reconstructionMethod, "Filtered Back") || strstr(d.reconstructionMethod, "Filtered Backprojection"))
 			strcat(reconMethodName, "Filtered Back Projection ");
 		if (strstr(d.reconstructionMethod, "3DRP"))
 			strcat(reconMethodName, "3D Kinahan-Rogers ");
