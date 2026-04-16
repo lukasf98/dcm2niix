@@ -85,6 +85,15 @@ Several DICOM sequences are "filtered out" during parsing because their contents
 - `(0400,0561) OriginalAttributesSequence` — tracked by `sqDepth04000561` (depth-aware)
 - `(0008,9092) ReferencedImageEvidenceSequence` — tracked by `is00089092SQ` (boolean, cleared on any unNest — crude but generally OK because this SQ is small and shallow)
 - `(0088,0200) IconImageSequence` — tracked by `sqDepthIcon`
+- `(0054,0016) RadiopharmaceuticalInformationSequence` — tracked by `is00540016SQ` (boolean, same crude unNest pattern as `is00089092SQ`). Used to scope nested `CodeMeaning (0008,0104)` lookups for radionuclide/tracer naming (issue #983); the **first** `CodeMeaning` encountered inside wins, so `RadionuclideCodeSequence` is picked over `RadiopharmaceuticalCodeSequence`.
+
+### Implicit-VR sequence descent
+
+`isSQ()` in `nii_dicom.cpp` is the **explicit allowlist** of SQ tags the implicit-VR parser will recurse into. Adding a tag here makes the parser descend; omitting it means the entire SQ is treated as an opaque blob and any nested tags are invisible. PET tags `(0054,0016)`, `(0054,0300)`, `(0054,0304)` were added recently for issue #983 so radionuclide/tracer code sequences are reachable on implicit-VR datasets.
+
+### PET / BIDS notes
+
+`TimeZero` in the BIDS PET sidecar must always equal `SeriesTime`, never `AcquisitionTime`. For delayed reconstructions (or any series where acquisition trails the injection clock), using `AcquisitionTime` desynchronizes `TimeZero` from frame timing and breaks downstream PET pipelines (issue #983).
 
 **Known risk:** These latches assume the parser will encounter item delimiters to unlatch. An **empty** sequence (explicit length 0, common in anonymized DICOMs) has no items, so the latch never clears and every subsequent tag is silently dropped. Fix for issue #989 peeks at the raw 4-byte SQ length at `case kOriginalAttributesSq` and skips latching when the length is 0.
 

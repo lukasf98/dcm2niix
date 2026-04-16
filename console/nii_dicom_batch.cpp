@@ -1138,6 +1138,8 @@ int geProtocolBlock(const char *filename, int geOffset, int geLength, int isVerb
 }
 #endif // myReadGeProtocolBlock()
 
+double dicomTimeToSec(double dicomTime); // forward declaration: defined below, used by JSON writer
+
 void json_StrList(FILE *fp, const char *sLabel, char *sVal) {
 	if (strlen(sVal) < 1) return;
 	fprintf(fp, "\t\"%s\": [\"", sLabel);
@@ -1595,7 +1597,8 @@ tse3d: T2*/
 	json_Str(fp, "\t\"TracerRadionuclide\": \"%s\",\n", d.tracerRadionuclide);
 	//json_Str(fp, "\t\"Radiopharmaceutical\": \"%s\",\n", d.radiopharmaceutical);
 	json_Float(fp, "\t\"RadionuclidePositronFraction\": %g,\n", d.radionuclidePositronFraction);
-	json_Float(fp, "\t\"InjectedRadioactivity\": %.8g,\n", d.radionuclideTotalDose); // renamed https://bids-specification.readthedocs.io/en/stable/glossary.html#objects.metadata.InjectedRadioactivity
+	// BIDS InjectedRadioactivity is MBq; DICOM (0018,1074) RadionuclideTotalDose is Bq
+	json_Float(fp, "\t\"InjectedRadioactivity\": %.8g,\n", d.radionuclideTotalDose / 1.0e6);
 	if (d.radionuclideTotalDose > 0.0)
 		fprintf(fp, "\t\"InjectedRadioactivityUnits\": \"MBq\",\n");
 	json_Float(fp, "\t\"InjectedVolume\": %g,\n", d.injectedVolume);
@@ -1758,18 +1761,56 @@ tse3d: T2*/
 			fprintf(fp, "\t],\n");
 		}
 	}
-	json_FloatNotNan(fp, "\t\"ReconFilterSize\": %g,\n", d.reconFilterSize);
-	if ((d.modality == kMODALITY_PT) && (d.acquisitionTime > 0.0)) {
-		// to do: should we use post_inj_datetime 0009,103d for GE?
-		// are we really sure that acquisitionTime is timezero?
-		// Convert float to integer for easier manipulation
-		int time = (int)d.acquisitionTime;
-		// Extract hours, minutes, and seconds
+	// issue 983: Siemens ConvolutionKernel is "<Type><Size>", e.g. "XYZ Gauss4.00" -> "XYZ Gauss" + 4.0
+	if (isnan(d.reconFilterSize) && (strlen(d.convolutionKernel) > 0)) {
+		int splitAt = -1;
+		for (int i = 0; d.convolutionKernel[i] != '\0'; i++) {
+			char c = d.convolutionKernel[i];
+			if ((c >= '0' && c <= '9') || c == '.') {
+				if (splitAt < 0)
+					splitAt = i;
+			} else if (c != ' ') {
+				splitAt = -1; // letters after digits: not "<name><number>"; reset
+			}
+		}
+		if (splitAt > 0) {
+			char kernelName[kDICOMStr] = "";
+			strncpy(kernelName, d.convolutionKernel, splitAt);
+			kernelName[splitAt] = '\0';
+			for (int i = (int)strlen(kernelName) - 1; i >= 0 && kernelName[i] == ' '; i--)
+				kernelName[i] = '\0';
+			double kernelSize = atof(&d.convolutionKernel[splitAt]);
+			if (strlen(kernelName) > 0)
+				fprintf(fp, "\t\"ReconFilterType\": \"%s\",\n", kernelName);
+			if (kernelSize > 0.0)
+				fprintf(fp, "\t\"ReconFilterSize\": %g,\n", kernelSize);
+		}
+	} else {
+		json_FloatNotNan(fp, "\t\"ReconFilterSize\": %g,\n", d.reconFilterSize);
+	}
+	if ((d.modality == kMODALITY_PT) && ((d.seriesTime > 0.0) || (d.acquisitionTime > 0.0))) {
+		// issue 983: PET TimeZero should be SeriesTime (scan start), not AcquisitionTime
+		// (per-frame or delayed-reconstruction time). Decay correction is relative to SeriesTime.
+		// Fall back to AcquisitionTime if SeriesTime missing.
+		double t = (d.seriesTime > 0.0) ? d.seriesTime : d.acquisitionTime;
+		int time = (int)t;
 		int hours = time / 10000;
 		int minutes = (time / 100) % 100;
 		int seconds = time % 100;
-		// Format into HH:MM:SS and store in timeString
 		fprintf(fp, "\t\"TimeZero\": \"%02d:%02d:%02d\",\n", hours, minutes, seconds);
+		fprintf(fp, "\t\"ScanStart\": 0,\n");
+		if (d.radiopharmaceuticalStartTime > 0.0) {
+			double injSec = dicomTimeToSec(d.radiopharmaceuticalStartTime);
+			double t0Sec = dicomTimeToSec(t);
+			if ((injSec >= 0) && (t0Sec >= 0))
+				fprintf(fp, "\t\"InjectionStart\": %g,\n", injSec - t0Sec);
+		}
+		if (strlen(d.decayCorrection) > 0) {
+			bool corrected = (strcmp(d.decayCorrection, "NONE") != 0);
+			fprintf(fp, "\t\"ImageDecayCorrected\": %s,\n", corrected ? "true" : "false");
+			if (corrected && (strcmp(d.decayCorrection, "START") == 0))
+				fprintf(fp, "\t\"ImageDecayCorrectionTime\": 0,\n");
+		}
 	}
 	// CT parameters
 	json_Float(fp, "\t\"ExposureTime\": %g,\n", d.exposureTimeMs / 1000.0);
@@ -8503,10 +8544,22 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 				// note: GE 0008,0032 unreliable, see mb=6 data from sw27.0 20201026
 				// issue 407
 				int nTR = 0;
+				double seriesSec = -1.0;
+				if ((dcmList[indx0].modality == kMODALITY_PT) && (dcmList[indx0].seriesTime > 0.0))
+					seriesSec = dicomTimeToSec(dcmList[indx0].seriesTime);
 				for (int i = 0; i < nConvert; i++)
 					if (isSamePosition(dcmList[indx0], dcmList[dcmSort[i].indx])) {
 						dti4D->frameDuration[nTR] = dcmList[dcmSort[i].indx].frameDuration;
 						dti4D->frameReferenceTime[nTR] = dcmList[dcmSort[i].indx].frameReferenceTime;
+						// issue 983: PET FrameTimesStart is AcquisitionTime relative to SeriesTime (TimeZero)
+						if (seriesSec >= 0) {
+							double acqSec = dicomTimeToSec(dcmList[dcmSort[i].indx].acquisitionTime);
+							double tStart = (acqSec >= 0) ? (acqSec - seriesSec) : -1.0;
+							if (tStart < 0)
+								tStart = 0;
+							dti4D->volumeOnsetTime[nTR] = tStart;
+							dti4D->decayFactor[nTR] = dcmList[dcmSort[i].indx].decayFactor;
+						}
 						nTR += 1;
 						if (nTR >= kMaxDTI4D)
 							break;
@@ -8571,17 +8624,19 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 						printWarning("Seconds between volumes varies (perhaps run through midnight)\n");
 					else
 						printWarning("Seconds between volumes varies\n");
-					// issue 407
-					int nTR = 0;
-					for (int i = 0; i < nConvert; i++)
-						if (isSamePosition(dcmList[indx0], dcmList[dcmSort[i].indx])) {
-							float trDiff = acquisitionTimeDifference(&dcmList[indx0], &dcmList[dcmSort[i].indx]);
-							dti4D->volumeOnsetTime[nTR] = trDiff;
-							dti4D->decayFactor[nTR] = dcmList[dcmSort[i].indx].decayFactor;
-							nTR += 1;
-							if (nTR >= kMaxDTI4D)
-								break;
-						}
+					// issue 407: fall back to inter-volume acquisitionTime deltas when SeriesTime unavailable
+					if (seriesSec < 0) {
+						int nTR = 0;
+						for (int i = 0; i < nConvert; i++)
+							if (isSamePosition(dcmList[indx0], dcmList[dcmSort[i].indx])) {
+								float trDiff = acquisitionTimeDifference(&dcmList[indx0], &dcmList[dcmSort[i].indx]);
+								dti4D->volumeOnsetTime[nTR] = trDiff;
+								dti4D->decayFactor[nTR] = dcmList[dcmSort[i].indx].decayFactor;
+								nTR += 1;
+								if (nTR >= kMaxDTI4D)
+									break;
+							}
+					}
 					if (dcmList[indx0].modality != kMODALITY_PT)
 						dti4D->decayFactor[0] = -1.0; // only for PET
 					else

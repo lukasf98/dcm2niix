@@ -817,6 +817,8 @@ struct TDICOMdata clear_dicom_data() {
 	d.sliceOrient = kSliceOrientUnknown;
 	d.dateTime = (double)19770703150928.0;
 	d.acquisitionTime = 0.0f;
+	d.seriesTime = 0.0;
+	d.radiopharmaceuticalStartTime = 0.0;
 	d.acquisitionDate = 0.0f;
 	d.manufacturer = kMANUFACTURER_UNKNOWN;
 	d.isPlanarRGB = false;
@@ -3973,8 +3975,9 @@ unsigned char *nii_loadImgXL(char *imgname, struct nifti_1_header *hdr, struct T
 } // nii_loadImgXL()
 
 int isSQ(uint32_t groupElement, bool isPhilips) { // Detect sequence VR ("SQ") for implicit tags
-	static const int array_size = 35;
-	uint32_t array[array_size] = {0x0008 + (uint32_t(0x1111) << 16), 0x0008 + (uint32_t(0x1115) << 16), 0x0008 + (uint32_t(0x1140) << 16), 0x0008 + (uint32_t(0x1199) << 16), 0x0008 + (uint32_t(0x2218) << 16), 0x0008 + (uint32_t(0x9092) << 16), 0x0018 + (uint32_t(0x9006) << 16), 0x0018 + (uint32_t(0x9042) << 16), 0x0018 + (uint32_t(0x9045) << 16), 0x0018 + (uint32_t(0x9049) << 16), 0x0018 + (uint32_t(0x9112) << 16), 0x0018 + (uint32_t(0x9114) << 16), 0x0018 + (uint32_t(0x9115) << 16), 0x0018 + (uint32_t(0x9117) << 16), 0x0018 + (uint32_t(0x9119) << 16), 0x0018 + (uint32_t(0x9125) << 16), 0x0018 + (uint32_t(0x9152) << 16), 0x0018 + (uint32_t(0x9176) << 16), 0x0018 + (uint32_t(0x9226) << 16), 0x0018 + (uint32_t(0x9239) << 16), 0x0020 + (uint32_t(0x9071) << 16), 0x0020 + (uint32_t(0x9111) << 16), 0x0020 + (uint32_t(0x9113) << 16), 0x0020 + (uint32_t(0x9116) << 16), 0x0020 + (uint32_t(0x9221) << 16), 0x0020 + (uint32_t(0x9222) << 16), 0x0028 + (uint32_t(0x9110) << 16), 0x0028 + (uint32_t(0x9132) << 16), 0x0028 + (uint32_t(0x9145) << 16), 0x0040 + (uint32_t(0x0260) << 16), 0x0040 + (uint32_t(0x0555) << 16), 0x0040 + (uint32_t(0xa170) << 16), 0x5200 + (uint32_t(0x9229) << 16), 0x5200 + (uint32_t(0x9230) << 16)};
+	// issue 983: (0054,0016), (0054,0300), (0054,0304) enable descent into RadiopharmaceuticalInformationSequence and nested code sequences for implicit-VR PET
+	static const int array_size = 37;
+	uint32_t array[array_size] = {0x0008 + (uint32_t(0x1111) << 16), 0x0008 + (uint32_t(0x1115) << 16), 0x0008 + (uint32_t(0x1140) << 16), 0x0008 + (uint32_t(0x1199) << 16), 0x0008 + (uint32_t(0x2218) << 16), 0x0008 + (uint32_t(0x9092) << 16), 0x0018 + (uint32_t(0x9006) << 16), 0x0018 + (uint32_t(0x9042) << 16), 0x0018 + (uint32_t(0x9045) << 16), 0x0018 + (uint32_t(0x9049) << 16), 0x0018 + (uint32_t(0x9112) << 16), 0x0018 + (uint32_t(0x9114) << 16), 0x0018 + (uint32_t(0x9115) << 16), 0x0018 + (uint32_t(0x9117) << 16), 0x0018 + (uint32_t(0x9119) << 16), 0x0018 + (uint32_t(0x9125) << 16), 0x0018 + (uint32_t(0x9152) << 16), 0x0018 + (uint32_t(0x9176) << 16), 0x0018 + (uint32_t(0x9226) << 16), 0x0018 + (uint32_t(0x9239) << 16), 0x0020 + (uint32_t(0x9071) << 16), 0x0020 + (uint32_t(0x9111) << 16), 0x0020 + (uint32_t(0x9113) << 16), 0x0020 + (uint32_t(0x9116) << 16), 0x0020 + (uint32_t(0x9221) << 16), 0x0020 + (uint32_t(0x9222) << 16), 0x0028 + (uint32_t(0x9110) << 16), 0x0028 + (uint32_t(0x9132) << 16), 0x0028 + (uint32_t(0x9145) << 16), 0x0040 + (uint32_t(0x0260) << 16), 0x0040 + (uint32_t(0x0555) << 16), 0x0040 + (uint32_t(0xa170) << 16), 0x5200 + (uint32_t(0x9229) << 16), 0x5200 + (uint32_t(0x9230) << 16), 0x0054 + (uint32_t(0x0016) << 16), 0x0054 + (uint32_t(0x0300) << 16), 0x0054 + (uint32_t(0x0304) << 16)};
 	// uint32_t array[array_size] = {0x2005 + (uint32_t(0x140F) << 16), 0x0008 + (uint32_t(0x1111) << 16), 0x0008 + (uint32_t(0x1115) << 16), 0x0008 + (uint32_t(0x1140) << 16), 0x0008 + (uint32_t(0x1199) << 16), 0x0008 + (uint32_t(0x2218) << 16), 0x0008 + (uint32_t(0x9092) << 16), 0x0018 + (uint32_t(0x9006) << 16), 0x0018 + (uint32_t(0x9042) << 16), 0x0018 + (uint32_t(0x9045) << 16), 0x0018 + (uint32_t(0x9049) << 16), 0x0018 + (uint32_t(0x9112) << 16), 0x0018 + (uint32_t(0x9114) << 16), 0x0018 + (uint32_t(0x9115) << 16), 0x0018 + (uint32_t(0x9117) << 16), 0x0018 + (uint32_t(0x9119) << 16), 0x0018 + (uint32_t(0x9125) << 16), 0x0018 + (uint32_t(0x9152) << 16), 0x0018 + (uint32_t(0x9176) << 16), 0x0018 + (uint32_t(0x9226) << 16), 0x0018 + (uint32_t(0x9239) << 16), 0x0020 + (uint32_t(0x9071) << 16), 0x0020 + (uint32_t(0x9111) << 16), 0x0020 + (uint32_t(0x9113) << 16), 0x0020 + (uint32_t(0x9116) << 16), 0x0020 + (uint32_t(0x9221) << 16), 0x0020 + (uint32_t(0x9222) << 16), 0x0028 + (uint32_t(0x9110) << 16), 0x0028 + (uint32_t(0x9132) << 16), 0x0028 + (uint32_t(0x9145) << 16), 0x0040 + (uint32_t(0x0260) << 16), 0x0040 + (uint32_t(0x0555) << 16), 0x0040 + (uint32_t(0xa170) << 16), 0x5200 + (uint32_t(0x9229) << 16), 0x5200 + (uint32_t(0x9230) << 16)};
 	for (int i = 0; i < array_size; i++) {
 		// if (array[i] == groupElement) printMessage(" implicitSQ %04x,%04x\n",  groupElement & 65535,groupElement>>16);
@@ -4540,6 +4543,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 #define kSoftwareVersions 0x0018 + (0x1020 << 16)	   // LO
 #define kProtocolName 0x0018 + (0x1030 << 16)
 #define kTriggerTime 0x0018 + (0x1060 << 16) // DS
+#define kRadiopharmaceuticalStartTime 0x0018 + (0x1072 << 16) // TM, within (0054,0016) RadiopharmaceuticalInformationSequence
 #define kRadionuclideTotalDose 0x0018 + (0x1074 << 16)
 #define kRadionuclideHalfLife 0x0018 + (0x1075 << 16)
 #define kRadionuclidePositronFraction 0x0018 + (0x1076 << 16)
@@ -5830,6 +5834,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 		}*/
 		case kSeriesTime:
 			dcmStr(lLength, &buffer[lPos], seriesTimeTxt);
+			d.seriesTime = atof(seriesTimeTxt);
 			break;
 		case kStudyTime:
 			if (strlen(d.studyTime) < 2)
@@ -5896,7 +5901,15 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 		}
 		case kCodeMeaning: {
 			if (is00540016SQ) {
-				dcmStr(lLength, &buffer[lPos], d.tracerRadionuclide);
+				// issue 983: take first CodeMeaning inside (0054,0016) — RadionuclideCodeSequence ^18^Fluorine; strip DICOM caret separators
+				if (strlen(d.tracerRadionuclide) < 1) {
+					dcmStr(lLength, &buffer[lPos], d.tracerRadionuclide);
+					int w = 0;
+					for (int r = 0; d.tracerRadionuclide[r] != '\0'; r++)
+						if (d.tracerRadionuclide[r] != '^')
+							d.tracerRadionuclide[w++] = d.tracerRadionuclide[r];
+					d.tracerRadionuclide[w] = '\0';
+				}
 			} else if (isDeidentificationMethodCodeSequence && d.deID_CS_n < MAX_DEID_CS) {
 				dcmStr(lLength, &buffer[lPos], dti4D->deID_CS[d.deID_CS_n].CodeMeaning);
 				d.deID_CS_n++;
@@ -6779,6 +6792,13 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 			acquisitionTimesGE_UIH++;
 			break;
 		}
+		case kRadiopharmaceuticalStartTime: {
+			// issue 983: HHMMSS.FFFFFF, inside (0054,0016); used to compute BIDS InjectionStart
+			char buf[kDICOMStr] = "";
+			dcmStr(lLength, &buffer[lPos], buf);
+			d.radiopharmaceuticalStartTime = atof(buf);
+			break;
+		}
 		case kRadionuclideTotalDose:
 			d.radionuclideTotalDose = dcmStrFloat(lLength, &buffer[lPos]);
 			break;
@@ -6975,6 +6995,17 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 			break;
 		}
 		case kRadiopharmaceuticalInformationSQ:
+			// Mirror issue 989 guard: empty explicit-length SQ never fires unNest, so the
+			// latch would stay permanently and misroute later CodeMeaning tags into tracerRadionuclide.
+			if (d.isExplicitVR && (lLength <= 8) && (buffer[lPos] == 'S') && (buffer[lPos + 1] == 'Q')) {
+				uint32_t sqLen;
+				if (d.isLittleEndian)
+					sqLen = buffer[lPos + 4] | (buffer[lPos + 5] << 8) | (buffer[lPos + 6] << 16) | (buffer[lPos + 7] << 24);
+				else
+					sqLen = buffer[lPos + 7] | (buffer[lPos + 6] << 8) | (buffer[lPos + 5] << 16) | (buffer[lPos + 4] << 24);
+				if (sqLen == 0)
+					break;
+			}
 			is00540016SQ = true;
 			break;
 		case kLocationsInAcquisition:
