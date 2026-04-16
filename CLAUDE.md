@@ -121,6 +121,10 @@ Several DICOM sequences are "filtered out" during parsing because their contents
 - `(0088,0200) IconImageSequence` — tracked by `sqDepthIcon`
 - `(0054,0016) RadiopharmaceuticalInformationSequence` — tracked by `is00540016SQ` (boolean, same crude unNest pattern as `is00089092SQ`). Used to scope nested `CodeMeaning (0008,0104)` lookups for radionuclide/tracer naming (issue #983); the **first** `CodeMeaning` encountered inside wins, so `RadionuclideCodeSequence` is picked over `RadiopharmaceuticalCodeSequence`.
 
+### UIH MOSAIC bvec
+
+UIH DICOMs may store diffusion gradient directions in both the standard `(0018,9089) DiffusionGradientOrientation` tag and the private `(0065,1037)` tag. The private tag is more reliable for UIH MOSAIC data. When `manufacturer == UIH`, always prefer `(0065,1037)` regardless of which tag appears first in the file (issue #993, commit `ab6f48c`). Do not "optimize" this by skipping the private tag when the standard tag is present.
+
 ### Implicit-VR sequence descent
 
 `isSQ()` in `nii_dicom.cpp` is the **explicit allowlist** of SQ tags the implicit-VR parser will recurse into. Adding a tag here makes the parser descend; omitting it means the entire SQ is treated as an opaque blob and any nested tags are invisible. PET tags `(0054,0016)`, `(0054,0300)`, `(0054,0304)` were added recently for issue #983 so radionuclide/tracer code sequences are reachable on implicit-VR datasets.

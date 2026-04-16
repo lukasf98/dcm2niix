@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 
 project(console)
 
+include(GNUInstallDirs)
+
 # Option Choose whether to use static runtime
 include(ucm.cmake)
 option(USE_STATIC_RUNTIME "Use static runtime" ON)
@@ -280,8 +282,8 @@ if(APPLE)
     # launchctl plist ./dcm2niix
 endif()
 
-install(TARGETS ${PROGRAMS} DESTINATION bin)
+install(TARGETS ${PROGRAMS} DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 if(BUILD_DCM2NIIXFSLIB)
-    install(TARGETS ${DCM2NIIXFSLIB} DESTINATION lib)
+    install(TARGETS ${DCM2NIIXFSLIB} DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()

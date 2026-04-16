@@ -6950,7 +6950,7 @@ void checkSliceTiming(struct TDICOMdata *d, struct TDICOMdata *d1, int verbose, 
 	if ((maxT1 < 0.0) && (minT1 < 0.0)) {
 		// issue 797 e.g. E11 2D slices where acquisition time used
 		// in this case d1->csa is not populated
-		if ((maxT-minT) > d->TR)
+		if (((maxT-minT) > d->TR)  && (!d->isLocalizer))
 			printWarning("Issue797: Check slice timing range %g..%g, TA= %g, TR=%g ms)\n", minT, maxT, maxT-minT, d->TR);
 		isIssue870 = 0;
 	}
@@ -7006,7 +7006,7 @@ void checkSliceTiming(struct TDICOMdata *d, struct TDICOMdata *d1, int verbose, 
 			d->CSA.sliceTiming[0] = -1.0;
 			return;
 		}
-		if (d->modality == kMODALITY_MR)
+		if ((d->modality == kMODALITY_MR) && (!d->isLocalizer))
 			printWarning("Siemens MoCo? Bogus slice timing (range %g..%g, TR=%g seconds)\n", minT1, maxT1, TRms);
 		return;
 	}
