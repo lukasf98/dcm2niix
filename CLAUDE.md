@@ -48,7 +48,15 @@ cd console && make
 
 ## Testing
 
-No automated test suite. Validate manually against QA datasets in `dcm_qa/`, `dcm_qa_nih/`, `dcm_qa_uih/`:
+No in-repo automated test suite. The regression suite lives in a separate repository, [`dcm_validate`](https://github.com/neurolabusc/dcm_validate), which contains ~35 `dcm_qa_*` submodules. Each submodule has `In/` (DICOM input), `Ref/` (reference NIfTI + JSON output), and a `batch.sh` that runs dcm2niix and diffs `Ref/` against fresh `Out/`. The diff ignores `ConversionSoftwareVersion` and `BidsGuess`.
+
+**Before any non-trivial change** (bug fix, new feature, refactor) pull down `dcm_validate` to catch regressions across the supported vendor matrix. Check the sibling path `../dcm_validate` first; if absent, clone with submodules:
+```bash
+git clone --recursive https://github.com/neurolabusc/dcm_validate.git ../dcm_validate
+```
+Each `dcm_qa_*` submodule is a self-contained test. **Read each `batch.sh` before running it** — they vary widely: different `-f` formats, some unzip `In/*.zip` (and delete the originals), some decompress `Ref/*.nii.gz` in place, some iterate subfolders, and `dcm_qa_sag` is intentionally a single-file `dtifits.py` validation rather than a Ref diff.
+
+For ad-hoc smoke tests against one folder:
 ```bash
 ./dcm2niix -v 2 ../dcm_qa/
 ```
@@ -91,6 +99,12 @@ Several DICOM sequences are "filtered out" during parsing because their contents
 
 `isSQ()` in `nii_dicom.cpp` is the **explicit allowlist** of SQ tags the implicit-VR parser will recurse into. Adding a tag here makes the parser descend; omitting it means the entire SQ is treated as an opaque blob and any nested tags are invisible. PET tags `(0054,0016)`, `(0054,0300)`, `(0054,0304)` were added recently for issue #983 so radionuclide/tracer code sequences are reachable on implicit-VR datasets.
 
+### Filename format specifiers (`-f` flag)
+
+Full list in [FILENAMING.md](FILENAMING.md). Two conventions worth flagging here because they are case-sensitive and easy to confuse:
+- `%v` = vendor full name (`Canon`, `Siemens`, `GE`); `%m` = 2-char abbreviation (`Ca`, `Si`, `GE`). Used by many `dcm_qa_*` `batch.sh` scripts — don't conflate them.
+- `%h` (lowercase) = hazardous BIDS hierarchical naming; `%H` (uppercase) = hazardous + reproin (uses `studyDescription` as path prefix).
+
 ### PET / BIDS notes
 
 `TimeZero` in the BIDS PET sidecar must always equal `SeriesTime`, never `AcquisitionTime`. For delayed reconstructions (or any series where acquisition trails the injection clock), using `AcquisitionTime` desynchronizes `TimeZero` from frame timing and breaks downstream PET pipelines (issue #983).
@@ -98,6 +112,8 @@ Several DICOM sequences are "filtered out" during parsing because their contents
 `ImageDecayCorrectionTime` has two branches keyed off `(0054,1102) DecayCorrection`: `START` emits 0 (corrected to series start = TimeZero); `ADMIN` emits `RadiopharmaceuticalStartTime - TimeZero` (corrected to injection time, expressed relative to TimeZero per BIDS). `NONE` emits nothing.
 
 `TracerName` comes from `(0018,0031) Radiopharmaceutical` (often nested inside `RadiopharmaceuticalInformationSequence`). GE packs this as `"FDG -- fluorodeoxyglucose"` (short name + long description separated by `" -- "`); the parser strips at `" -- "` to emit only the short tracer name. Do not remove this stripping — GE PET data depends on it for clean BIDS `TracerName` values.
+
+**Philips ASL volume order**: For Philips ASL data (label/control pairs, multi-phase, 3D pCASL Sources), volumes are reordered into **temporal acquisition order** rather than the scanner's logical/storage order. This is intentional per [issue #533](https://github.com/rordenlab/dcm2niix/issues/533) (commit `66a4fd0`). When updating Ref files for `dcm_qa_philips*` datasets, expect volume reshuffles — same set of voxels, different volume indexing.
 
 **Known risk:** These latches assume the parser will encounter item delimiters to unlatch. An **empty** sequence (explicit length 0, common in anonymized DICOMs) has no items, so the latch never clears and every subsequent tag is silently dropped. Fix for issue #989 peeks at the raw 4-byte SQ length at `case kOriginalAttributesSq` and skips latching when the length is 0.
 
