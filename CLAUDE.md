@@ -48,13 +48,39 @@ cd console && make
 
 ## Testing
 
-No in-repo automated test suite. The regression suite lives in a separate repository, [`dcm_validate`](https://github.com/neurolabusc/dcm_validate), which contains ~35 `dcm_qa_*` submodules. Each submodule has `In/` (DICOM input), `Ref/` (reference NIfTI + JSON output), and a `batch.sh` that runs dcm2niix and diffs `Ref/` against fresh `Out/`. The diff ignores `ConversionSoftwareVersion` and `BidsGuess`.
+### In-tree minimum regression suite
 
-**Before any non-trivial change** (bug fix, new feature, refactor) pull down `dcm_validate` to catch regressions across the supported vendor matrix. Check the sibling path `../dcm_validate` first; if absent, clone with submodules:
+Three regression submodules ship with this repo and must be run before every non-trivial commit:
+
+- `dcm_qa` — multi-vendor core set
+- `dcm_qa_nih` — NIH-contributed acquisitions
+- `dcm_qa_uih` — United Imaging Healthcare (UIH) data
+
+Each has `In/` (DICOM input), `Ref/` (reference NIfTI + JSON), and a `batch.sh` that runs dcm2niix and diffs `Ref/` against fresh `Out/`. The diff ignores `ConversionSoftwareVersion` and `BidsGuess`. `batch.sh` uses `set -eu`; a non-zero exit means output drifted and the commit should be investigated.
+
+Run all three:
+```bash
+# inside Claude Code
+/regressiontest                 # uses build/bin/dcm2niix by default
+/regressiontest /abs/path/bin   # test a specific binary
+
+# or manually
+git submodule update --init
+export PATH="$PWD/build/bin:$PATH"
+for d in dcm_qa dcm_qa_nih dcm_qa_uih; do
+    (cd "$d" && ./batch.sh) || { echo "FAIL: $d"; exit 1; }
+done
+```
+
+A passing run of all three submodules is the baseline expectation before any commit touching conversion logic.
+
+### Full vendor matrix (release gate)
+
+The wider regression suite lives in [`dcm_validate`](https://github.com/neurolabusc/dcm_validate) (~35 `dcm_qa_*` submodules). Run this before cutting a release or when a change touches vendor-specific code paths that the in-tree trio doesn't cover. Check the sibling path `../dcm_validate` first; if absent, clone with submodules:
 ```bash
 git clone --recursive https://github.com/neurolabusc/dcm_validate.git ../dcm_validate
 ```
-Each `dcm_qa_*` submodule is a self-contained test. **Read each `batch.sh` before running it** — they vary widely: different `-f` formats, some unzip `In/*.zip` (and delete the originals), some decompress `Ref/*.nii.gz` in place, some iterate subfolders, and `dcm_qa_sag` is intentionally a single-file `dtifits.py` validation rather than a Ref diff.
+**Read each `batch.sh` before running it** — they vary widely: different `-f` formats, some unzip `In/*.zip` (and delete the originals), some decompress `Ref/*.nii.gz` in place, some iterate subfolders, and `dcm_qa_sag` is intentionally a single-file `dtifits.py` validation rather than a Ref diff.
 
 For ad-hoc smoke tests against one folder:
 ```bash
