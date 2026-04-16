@@ -1190,7 +1190,7 @@ void json_Str(FILE *fp, const char *sLabel, char *sVal) { // issue131,425
 			if (sVal[i] == 0x08)
 				sValEsc[o] = 'b';
 			if (sVal[i] == 0x09)
-				sValEsc[o] = '9';
+				sValEsc[o] = 't';
 			if (sVal[i] == 0x0A)
 				sValEsc[o] = 'n';
 			if (sVal[i] == 0x0B)
@@ -3544,8 +3544,7 @@ bool bitDepthVaries(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 
 void niiDeleteFnm(const char *outname, const char *ext) {
 	char niiname[2048] = {""};
-	strcat(niiname, outname);
-	strcat(niiname, ext);
+	snprintf(niiname, sizeof(niiname), "%s%s", outname, ext);
 	if (is_fileexists(niiname))
 		remove(niiname);
 }

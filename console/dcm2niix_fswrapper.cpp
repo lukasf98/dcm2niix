@@ -4,6 +4,7 @@
 
 #include "dcm2niix_fswrapper.h"
 #include "nii_dicom.h"
+#include "print.h"
 
 struct TDCMopts dcm2niix_fswrapper::tdcmOpts;
 
@@ -286,6 +287,10 @@ void dcm2niix_fswrapper::dicomDump(const char *dicomdir, const char *series_info
 	char *logdir = dirname(fnamecopy);
 
 	FILE *fpout = fopen(series_info, "w");
+	if (fpout == NULL) {
+		printError("Unable to open '%s' for writing\n", series_info);
+		return;
+	}
 
 	std::vector<MRIFSSTRUCT> *mrifsStruct_vector = dcm2niix_fswrapper::getMrifsStructVector();
 	int nitems = (*mrifsStruct_vector).size();
@@ -294,8 +299,12 @@ void dcm2niix_fswrapper::dicomDump(const char *dicomdir, const char *series_info
 
 		// output the dicom list for the series into seriesNum-dicomflst.txt
 		char dicomflst[2048] = {'\0'};
-		sprintf(dicomflst, "%s/%ld-dicomflst.txt", logdir, tdicomData->seriesNum);
+		snprintf(dicomflst, sizeof(dicomflst), "%s/%ld-dicomflst.txt", logdir, tdicomData->seriesNum);
 		FILE *fp_dcmLst = fopen(dicomflst, "w");
+		if (fp_dcmLst == NULL) {
+			printError("Unable to open '%s' for writing\n", dicomflst);
+			continue;
+		}
 		for (int nDcm = 0; nDcm < (*mrifsStruct_vector)[n].nDcm; nDcm++)
 			fprintf(fp_dcmLst, "%s\n", (*mrifsStruct_vector)[n].dicomlst[nDcm]);
 		fclose(fp_dcmLst);

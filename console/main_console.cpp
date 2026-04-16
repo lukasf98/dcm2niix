@@ -562,11 +562,11 @@ int main(int argc, const char *argv[]) {
 					opts.isPipedGz = true; // pipe to pigz without saving uncompressed to disk
 			} else if ((argv[i][1] == 'f') && ((i + 1) < argc)) {
 				i++;
-				strcpy(opts.filename, argv[i]);
+				snprintf(opts.filename, sizeof(opts.filename), "%s", argv[i]);
 				isOutNameSpecified = true;
 			} else if ((argv[i][1] == 'o') && ((i + 1) < argc)) {
 				i++;
-				strcpy(opts.outdir, argv[i]);
+				snprintf(opts.outdir, sizeof(opts.outdir), "%s", argv[i]);
 			} else if ((argv[i][1] == 'n') && ((i + 1) < argc)) {
 				i++;
 				double seriesNumber = atof(argv[i]);
@@ -624,7 +624,7 @@ int main(int argc, const char *argv[]) {
 #endif
 	clock_t start = clock();
 	for (i = (lastCommandArg + 1); i < argc; i++) {
-		strcpy(opts.indir, argv[i]); // [argc-1]
+		snprintf(opts.indir, sizeof(opts.indir), "%s", argv[i]); // [argc-1]
 		int ret = nii_loadDir(&opts);
 		if (ret != EXIT_SUCCESS)
 			return ret;

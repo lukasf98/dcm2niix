@@ -5093,6 +5093,10 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 					acquisitionTimePhilips = -1.0;
 				}
 				int ndim = nDimIndxVal;
+				if (numDimensionIndexValues >= kMaxSlice2D) {
+					printError("Too many slices to track dimensions. Only up to %d are supported\n", kMaxSlice2D);
+					break;
+				}
 				// issue 839
 				patientPosition1[numDimensionIndexValues] = patientPosition[1];
 				patientPosition2[numDimensionIndexValues] = patientPosition[2];
