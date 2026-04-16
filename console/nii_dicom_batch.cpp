@@ -2451,7 +2451,10 @@ tse3d: T2*/
 	//  Other than the use of (n-1), the value is basically just 1.0/bandwidthPerPixelPhaseEncode.
 	//  https://github.com/rordenlab/dcm2niix/issues/130
 	//  https://neurostars.org/t/error-bids-validation-after-dcm2bids-conversion-repetitiontime-and-acquisitionduration-are-mutually-exclusive/30759/13
-	if ((d.manufacturer != kMANUFACTURER_UIH) && (d.TR <= 0.0)) // issue606
+	// AcquisitionDuration (BIDS key, deprecated) sources DICOM (0018,9073); it is NOT in the BIDS timing-parameters
+	// mutual-exclusion table — that constraint applies to FrameAcquisitionDuration (0018,9220), a distinct field
+	// we do not currently emit. See issue #991 and the PR that introduced this gate for full context.
+	if (d.manufacturer != kMANUFACTURER_UIH)
 		json_Float(fp, "\t\"AcquisitionDuration\": %g,\n", d.acquisitionDuration);
 	if ((d.manufacturer == kMANUFACTURER_UIH) && (effectiveEchoSpacing <= 0.0)) // issue225, issue531
 		json_Float(fp, "\t\"TotalReadoutTime\": %g,\n", d.acquisitionDuration / 1000.0);
