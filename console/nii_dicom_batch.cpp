@@ -3844,9 +3844,10 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 				strcat(outname, opts.indirParent);
 			if (f == 'G')
 				strcat(outname, dcm.accessionNumber);
-			if ((f == 'H') || (f == 'V')) {
-				printWarning("hazardous (%%h) or volatile (%%v) bids naming experimental\n");
-				bool isReproin = (f == 'V');
+			if (f == 'H') {
+				printWarning("hazardous (%%h) or reproin (%%H) bids naming experimental\n");
+				
+				bool isReproin = (inname[pos] == 'H');
 				if (isReproin) {
 					// https://dbic-handbook.readthedocs.io/en/latest/mri/reproin.html
 					// reproin convention is hard for one-pass, as `ses` may only be reported in one series in the session (e.g. localizer)
@@ -3868,7 +3869,7 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 				else
 					strcat(bidsSubject, opts.bidsSubject);
 #ifndef USING_R
-				printf("%s<<<:::\n", bidsSubject);
+				//printf("%s<<<:::\n", bidsSubject);
 #endif
 				char bidsSession[kOptsStr] = "ses-";
 				if (strlen(opts.bidsSession) <= 0)
