@@ -1558,7 +1558,8 @@ tse3d: T2*/
 		int count = 0;
 		sscanf(acqDateTimeBuf, "%5d%2d%2d%3d%2d%lf%n", &ayear, &amonth, &aday, &ahour, &amin, &asec, &count); // CR 20170404 %lf not %f for double precision
 		// printf("-%02d-%02dT%02d:%02d:%02.6f\",\n", amonth, aday, ahour, amin, asec);
-		if (count) { // ISO 8601 specifies a sign must exist for distant years.
+		// issue983 : do not include AcquisitionTime for PET
+		if ((count) && (d.modality != kMODALITY_PT)) { // ISO 8601 specifies a sign must exist for distant years.
 			// report time of the day only format, https://www.cs.tut.fi/~jkorpela/iso8601.html
 			fprintf(fp, "\t\"AcquisitionTime\": \"%02d:%02d:%02.6f\",\n", ahour, amin, asec);
 			// report date and time together
@@ -1811,22 +1812,35 @@ tse3d: T2*/
 		json_FloatNotNan(fp, "\t\"ReconFilterSize\": %g,\n", d.reconFilterSize);
 	}
 	if ((d.modality == kMODALITY_PT) && ((d.seriesTime > 0.0) || (d.acquisitionTime > 0.0))) {
+		// issue 983: SeriesTime must be included
+		if (d.seriesTime > 0.0) {
+			int time = (int)d.seriesTime;
+			int hours = time / 10000;
+			int minutes = (time / 100) % 100;
+			int seconds = time % 100;
+			fprintf(fp, "\t\"TimeZero\": \"%02d:%02d:%02d\",\n", hours, minutes, seconds);
+
+		}
+		double t = (d.seriesTime > 0.0) ? d.seriesTime : d.acquisitionTime;
+		/* issue 983: leave out TimeZero
 		// issue 983: PET TimeZero should be SeriesTime (scan start), not AcquisitionTime
 		// (per-frame or delayed-reconstruction time). Decay correction is relative to SeriesTime.
 		// Fall back to AcquisitionTime if SeriesTime missing.
-		double t = (d.seriesTime > 0.0) ? d.seriesTime : d.acquisitionTime;
 		int time = (int)t;
 		int hours = time / 10000;
 		int minutes = (time / 100) % 100;
 		int seconds = time % 100;
 		fprintf(fp, "\t\"TimeZero\": \"%02d:%02d:%02d\",\n", hours, minutes, seconds);
+		*/
 		fprintf(fp, "\t\"ScanStart\": 0,\n");
+		/* issue983: InjectionStart not be defined due to risk of ambiguity
 		if (d.radiopharmaceuticalStartTime > 0.0) {
 			double injSec = dicomTimeToSec(d.radiopharmaceuticalStartTime);
 			double t0Sec = dicomTimeToSec(t);
 			if ((injSec >= 0) && (t0Sec >= 0))
 				fprintf(fp, "\t\"InjectionStart\": %g,\n", injSec - t0Sec);
 		}
+		*/
 		if (strlen(d.decayCorrection) > 0) {
 			bool corrected = (strcmp(d.decayCorrection, "NONE") != 0);
 			fprintf(fp, "\t\"ImageDecayCorrected\": %s,\n", corrected ? "true" : "false");
