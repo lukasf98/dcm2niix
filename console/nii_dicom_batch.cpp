@@ -1818,7 +1818,7 @@ tse3d: T2*/
 			int hours = time / 10000;
 			int minutes = (time / 100) % 100;
 			int seconds = time % 100;
-			fprintf(fp, "\t\"TimeZero\": \"%02d:%02d:%02d\",\n", hours, minutes, seconds);
+			fprintf(fp, "\t\"SeriesTime\": \"%02d:%02d:%02d\",\n", hours, minutes, seconds);
 
 		}
 		double t = (d.seriesTime > 0.0) ? d.seriesTime : d.acquisitionTime;
