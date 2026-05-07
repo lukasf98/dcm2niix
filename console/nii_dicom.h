@@ -57,7 +57,7 @@ extern "C" {
 #define kCPUsuf " " // unknown CPU
 #endif
 
-#define kDCMdate "v1.0.20250505"
+#define kDCMdate "v1.0.20260416"
 #define kDCMvers kDCMdate " " kJP2suf kTurbosuf kLSsuf kCCsuf kCPUsuf
 
 static const int kMaxEPI3D = 1024; // maximum number of EPI images in Siemens Mosaic
@@ -94,6 +94,7 @@ static const int kMaxDTI4D = kMaxSlice2D; // issue460: maximum number of DTI dir
 #define kMODALITY_MR 3
 #define kMODALITY_PT 4
 #define kMODALITY_US 5
+#define kMODALITY_SEG 6
 
 // PartialFourierDirection 0018,9036
 #define kPARTIAL_FOURIER_DIRECTION_UNKNOWN 0
@@ -158,7 +159,7 @@ static const int kMaxDTI4D = kMaxSlice2D; // issue460: maximum number of DTI dir
 #define kASL_FLAG_GE_PULSED 64
 
 // for spoiling 0018,9016
-#define kSPOILING_UNKOWN -1
+#define kSPOILING_UNKNOWN -1
 #define kSPOILING_NONE 0
 #define kSPOILING_RF 1
 #define kSPOILING_GRADIENT 2
@@ -266,8 +267,8 @@ struct TDICOMdata {
 	float rtia_timerGE, radionuclidePositronFraction, radionuclideTotalDose, radionuclideHalfLife, doseCalibrationFactor, injectedVolume, reconFilterSize; // PET ISOTOPE MODULE ATTRIBUTES (C.8-57)
 	float frameReferenceTime, frameDuration, ecat_isotope_halflife, ecat_dosage;
 	float pixelPaddingValue; // used for both FloatPixelPaddingValue (0028, 0122) and PixelPaddingValue (0028, 0120); NaN if not present.
-	double imagingFrequency, acquisitionDuration, triggerDelayTime, RWVScale, RWVIntercept, dateTime, acquisitionTime, acquisitionDate, bandwidthPerPixelPhaseEncode;
-	char parallelAcquisitionTechnique[kDICOMStr], radiopharmaceutical[kDICOMStr], convolutionKernel[kDICOMStr], unitsPT[kDICOMStr], tracerRadionuclide[kDICOMStr], decayCorrection[kDICOMStr], attenuationCorrectionMethod[kDICOMStr], reconstructionMethod[kDICOMStr], transferSyntax[kDICOMStr];
+	double imagingFrequency, acquisitionDuration, triggerDelayTime, RWVScale, RWVIntercept, dateTime, acquisitionTime, seriesTime, radiopharmaceuticalStartTime, acquisitionDate, bandwidthPerPixelPhaseEncode;
+	char parallelAcquisitionTechnique[kDICOMStr], convolutionKernel[kDICOMStr], unitsPT[kDICOMStr], tracerRadionuclide[kDICOMStr], radiopharmaceutical[kDICOMStr], decayCorrection[kDICOMStr], attenuationCorrectionMethod[kDICOMStr], randomsCorrectionMethod[kDICOMStr], scatterCorrectionMethod[kDICOMStr], reconstructionMethod[kDICOMStr], transferSyntax[kDICOMStr];
 	char deidentificationMethod[kDICOMStr], prescanReuseString[kDICOMStr], imageOrientationText[kDICOMStr], pulseSequenceName[kDICOMStr], coilElements[kDICOMStr], coilName[kDICOMStr], phaseEncodingDirectionDisplayedUIH[kDICOMStr], imageBaseName[kDICOMStr], stationName[kDICOMStr], studyDescription[kDICOMStr], softwareVersions[kDICOMStr], deviceSerialNumber[kDICOMStr], institutionName[kDICOMStr], referringPhysicianName[kDICOMStr], instanceUID[kDICOMStr], seriesInstanceUID[kDICOMStr], studyInstanceUID[kDICOMStr], bodyPartExamined[kDICOMStr], procedureStepDescription[kDICOMStrLarge], imageTypeText[kDICOMStr], imageType[kDICOMStr], institutionalDepartmentName[kDICOMStr], manufacturersModelName[kDICOMStr], patientID[kDICOMStr], patientOrient[kDICOMStr], patientName[kDICOMStr], accessionNumber[kDICOMStr], seriesDescription[kDICOMStr], studyID[kDICOMStr], sequenceName[kDICOMStr], protocolName[kDICOMStr], sequenceVariant[kDICOMStr], scanningSequence[kDICOMStr], patientBirthDate[kDICOMStr], patientAge[kDICOMStr], studyDate[kDICOMStr], studyTime[kDICOMStr];
 	char deepLearningText[kDICOMStrLarge], scanOptions[kDICOMStrLarge], institutionAddress[kDICOMStrLarge], imageComments[kDICOMStrLarge];
 	uint32_t dimensionIndexValues[MAX_NUMBER_OF_DIMENSIONS];
@@ -278,7 +279,7 @@ struct TDICOMdata {
 };
 
 struct TDCMprefs {
-	int isVerbose, compressFlag, isIgnoreTriggerTimes;
+	int isVerbose, compressFlag, isIgnoreTriggerTimes, isKeepDirectionVaries;
 };
 
 size_t nii_ImgBytes(struct nifti_1_header hdr);

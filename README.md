@@ -1,6 +1,6 @@
 # dcm2niix
 
-[![Build status](https://ci.appveyor.com/api/projects/status/7o0xp2fgbhadkgn1?svg=true)](https://ci.appveyor.com/project/neurolabusc/dcm2niix)
+[![Build](https://github.com/rordenlab/dcm2niix/actions/workflows/build.yml/badge.svg)](https://github.com/rordenlab/dcm2niix/actions/workflows/build.yml)
 
 ## About
 
@@ -30,6 +30,7 @@ DICOM provides many ways to store/compress image data, known as [transfer syntax
  - JPEG-LS lossless support is optional, and can be provided by using [CharLS](https://github.com/team-charls/charls).
   - JPEG2000 lossy and lossless support is optional, and can be provided using [OpenJPEG](https://github.com/uclouvain/openjpeg) or [Jasper](https://www.ece.uvic.ca/~frodo/jasper/).
  - GZ compression (e.g. creating .nii.gz images) is optional, and can be provided using either the included [miniz](https://github.com/richgel999/miniz) or the popular zlib. Of particular note, the [Cloudflare zlib](https://github.com/cloudflare/zlib) exploits modern hardware (available since 2008) for very rapid compression. Alternatively, you can compile dcm2niix without a gzip compressor. Regardless of how you compile dcm2niix, it can use the external program [pigz](https://github.com/madler/pigz) for parallel compression.
+ - [Zstandard](https://github.com/facebook/zstd) compression (creating .nii.zst images via `-z s`) is optional, and can be enabled with `-DUSE_ZSTD=ON` (CMake) or `ZSTD=1 make` (Makefile). Zstandard offers a favorable compression/speed tradeoff compared to gzip.
 
 ## Versions
 
@@ -53,7 +54,7 @@ There are a couple ways to install dcm2niix
    * `curl -fLO https://github.com/rordenlab/dcm2niix/releases/latest/download/dcm2niix_lnx.zip`
    * `curl -fLO https://github.com/rordenlab/dcm2niix/releases/latest/download/macos_dcm2niix.pkg`
    * `curl -fLO https://github.com/rordenlab/dcm2niix/releases/latest/download/dcm2niix_win.zip`
- - Latest development version is available on [AppVeyor](https://ci.appveyor.com/project/neurolabusc/dcm2niix) for [Linux](https://ci.appveyor.com/api/projects/neurolabusc/dcm2niix/artifacts/dcm2niix_lnx.zip?job=linux), [Macintosh](https://ci.appveyor.com/api/projects/neurolabusc/dcm2niix/artifacts/dcm2niix_mac.zip?job=mac) or [Windows](https://ci.appveyor.com/api/projects/neurolabusc/dcm2niix/artifacts/dcm2niix_win.zip?job=win).
+ - Latest development builds are available as artifacts from [GitHub Actions](https://github.com/rordenlab/dcm2niix/actions/workflows/build.yml) for Linux, Macintosh, and Windows.
  - [MRIcroGL (NITRC)](https://www.nitrc.org/projects/mricrogl) or [MRIcroGL (GitHub)](https://github.com/rordenlab/MRIcroGL12/releases) includes dcm2niix that can be run from the command line or from the graphical user interface (select the Import menu item). The Linux version of dcm2niix is compiled on a [holy build box](https://github.com/phusion/holy-build-box), so it should run on any Linux distribution.
  - If you have a MacOS computer with Homebrew or MacPorts you can run `brew install dcm2niix` or `sudo port install dcm2niix`, respectively.
  - If you have Conda, [`conda install -c conda-forge dcm2niix`](https://anaconda.org/conda-forge/dcm2niix) on Linux, MacOS or Windows.
@@ -146,6 +147,7 @@ The following tools exploit dcm2niix
   - [BOLD5000_autoencoder](https://github.com/nmningmei/BOLD5000_autoencoder) uses dcm2niix to pipe imaging data into an unsupervised machine learning algorithm.
   - [boutiques-dcm2niix](https://github.com/lalet/boutiques-dcm2niix) is a dockerfile for installing and validating dcm2niix.
   - [Brain imAgiNg Analysis iN Arcana (Banana)](https://pypi.org/project/banana/) is a collection of brain imaging analysis workflows, it uses dcm2niix for format conversions.
+  - [Brain Lesion Suite](https://github.com/BrainLesion) supports dcm2niix for DICOM to NifTI conversion.
   - [brainnetome DiffusionKit](http://diffusion.brainnetome.org/en/latest/) uses dcm2niix to convert images.
   - [BraTS-Preprocessor](https://neuronflow.github.io/BraTS-Preprocessor/) uses dcm2niix to import files for [Brain Tumor Segmentation](https://www.frontiersin.org/articles/10.3389/fnins.2020.00125/full).
   - [CardioNIfTI](https://github.com/UK-Digital-Heart-Project/CardioNIfTI) processes cardiac MR DICOM datasets and converts them to NIfTI.

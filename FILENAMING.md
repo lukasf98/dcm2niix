@@ -13,6 +13,7 @@ You request the output file name with the `-f` argument. For example, consider y
  - %e=echo number (from 0018,0086)
  - %f=folder name (name of folder containing first DICOM)
  - %g=accession number (0008,0050)
+ - %h=hazardous - experimental BIDS file naming scheme (h for default, H if reproin style)
  - %i=ID of patient (from 0010,0020)
  - %j=series instance UID (from 0020,000E)
  - %k=study instance UID (from 0020,000D)

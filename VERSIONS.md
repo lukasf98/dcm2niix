@@ -95,7 +95,7 @@
 21-Sept-2016
  - Reduce verbosity (reduce number of repeated warnings, less scary warnings for derived rather than raw images).
  - Re-enable custom output directory "-o" option broken by 30-Apr-2016 version.
- - Deal with mis-behaved GE CT images where slice direction across images is not consistent.
+ - Deal with misbehaved GE CT images where slice direction across images is not consistent.
  - Add new BIDS fields (field strength, manufacturer, etc).
  - Philips PAR/REC conversion now reports inconsistent requested vs measured TR (due to prospect. motion corr.?).
  - GE: Locations In Acquisition (0054, 0081) is inaccurate if slices are interpolated, use Images In Acquisition (0020,1002) if available.

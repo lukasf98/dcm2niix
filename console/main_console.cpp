@@ -31,12 +31,12 @@ double get_wall_time() {
 #endif
 
 const char *removePath(const char *path) { // "/usr/path/filename.exe" -> "filename.exe"
-	const char *pDelimeter = strrchr(path, '\\');
-	if (pDelimeter)
-		path = pDelimeter + 1;
-	pDelimeter = strrchr(path, '/');
-	if (pDelimeter)
-		path = pDelimeter + 1;
+	const char *pDelimiter = strrchr(path, '\\');
+	if (pDelimiter)
+		path = pDelimiter + 1;
+	pDelimiter = strrchr(path, '/');
+	if (pDelimiter)
+		path = pDelimiter + 1;
 	return path;
 } // removePath()
 
@@ -69,7 +69,7 @@ void showHelp(const char *argv[], struct TDCMopts opts) {
 	printf("  -f : filename (%%a=antenna (coil) name, %%b=basename, %%c=comments, %%d=description, %%e=echo number, %%f=folder name, %%g=accession number, %%i=ID of patient, %%j=seriesInstanceUID, %%k=studyInstanceUID, %%m=manufacturer, %%n=name of patient, %%o=mediaObjectInstanceUID, %%p=protocol,%s %%r=instance number, %%s=series number, %%t=time, %%u=acquisition number, %%v=vendor, %%x=study ID; %%z=sequence name; default '%s')\n", kQstr, opts.filename);
 	printf("  -g : generate defaults file (y/n/o/i [o=only: reset and write defaults; i=ignore: reset defaults], default n)\n");
 	printf("  -h : show help\n");
-	printf("  -i : ignore derived, localizer and 2D images (y/n, default n)\n");
+	printf("  -i : ignore derived, localizer and 2D images (y/n/o, default n, o overrides keeping non-planar localizers)\n");
 	char max16Ch = 'n';
 	if (opts.isMaximize16BitRange == kMaximize16BitRange_True)
 		max16Ch = 'y';
@@ -79,7 +79,7 @@ void showHelp(const char *argv[], struct TDCMopts opts) {
 	printf("  -m : merge 2D slices from same series regardless of echo, exposure, etc. (n/y or 0/1/2, default 2) [no, yes, auto]\n");
 	printf("  -n : only convert this series CRC number - can be used up to %i times (default convert all)\n", MAX_NUM_SERIES);
 	printf("  -o : output directory (omit to save to input folder)\n");
-	printf("  -p : Philips precise float (not display) scaling (y/n, default y)\n");
+	printf("  -p : Philips precise float (not display) scaling (y/n/o, default y; o to override and ignore variable intensity scaling)\n");
 	printf("  -q : only search directory for DICOMs (y/l/n, default y) [y=show number of DICOMs found, l=additionally list DICOMs found, n=no]\n");
 	printf("  -r : rename instead of convert DICOMs (y/n, default n)\n");
 	printf("  -s : single file mode, do not convert other images in folder (y/n, default n)\n");
@@ -97,26 +97,47 @@ void showHelp(const char *argv[], struct TDCMopts opts) {
 	char gzCh = 'n';
 	if (opts.isGz)
 		gzCh = 'y';
-#if defined(_WIN64) || defined(_WIN32)
-// n.b. the optimal use of pigz requires pipes that are not provided for Windows
-#ifdef myDisableZLib
-	if (strlen(opts.pigzname) > 0)
-		printf("  -z : gz compress images (y/n/3, default %c) [y=pigz, n=no, 3=no,3D]\n", gzCh);
-	else
-		printf("  -z : gz compress images (y/n/3, default %c)  [y=pigz(MISSING!), n=no, 3=no,3D]\n", gzCh);
-#else
+	{
+		char zOpts[256] = "y";
+		char zDesc[512] = "y=pigz";
+#if !defined(_WIN64) && !defined(_WIN32)
+		// optimal pigz requires pipes, not available on Windows
+		strcat(zOpts, "/o");
+		if (strlen(opts.pigzname) > 0)
+			strcat(zDesc, ", o=optimal pigz");
+		else
+			strcat(zDesc, ", o=optimal(requires pigz)");
+#endif
+#ifdef myEnableZSTD
+		strcat(zOpts, "/s");
+		strcat(zDesc, ", s=zstd");
+#endif
+#ifndef myDisableZLib
+		strcat(zOpts, "/i");
 #ifdef myDisableMiniZ
-	printf("  -z : gz compress images (y/i/n/3, default %c) [y=pigz, i=internal:zlib, n=no, 3=no,3D]\n", gzCh);
+		strcat(zDesc, ", i=internal:zlib");
 #else
-	printf("  -z : gz compress images (y/i/n/3, default %c) [y=pigz, i=internal:miniz, n=no, 3=no,3D]\n", gzCh);
+		strcat(zDesc, ", i=internal:miniz");
 #endif
 #endif
+		strcat(zOpts, "/n/3");
+		strcat(zDesc, ", n=no, 3=no,3D");
+		if (strlen(opts.pigzname) < 1) {
+#ifdef myDisableZLib
+			printf("  -z : gz compress images (%s, default %c) [%s] pigz(MISSING!)\n", zOpts, gzCh, zDesc);
+#else
+			printf("  -z : compress images (%s, default %c) [%s]\n", zOpts, gzCh, zDesc);
+#endif
+		} else
+			printf("  -z : compress images (%s, default %c) [%s]\n", zOpts, gzCh, zDesc);
+	}
 	printf("  --big-endian : byte order (y/n/o, default o) [y=big-end, n=little-end, o=optimal/native]\n");
-	printf("  --progress : report progress (y/n, default n)\n");
 	printf("  --ignore_trigger_times : disregard values in 0018,1060 and 0020,9153\n");
 	printf("  --terse : omit filename post-fixes (can cause overwrites)\n");
 	printf("  --version : report version\n");
 	printf("  --xml : Slicer format features\n");
+#if defined(_WIN64) || defined(_WIN32)
+	printf("  --progress : report progress (y/n, default n)\n");
 	printf(" Defaults stored in Windows registry\n");
 	printf(" Examples :\n");
 	printf("  %s c:\\DICOM\\dir\n", cstr);
@@ -125,24 +146,7 @@ void showHelp(const char *argv[], struct TDCMopts opts) {
 	printf("  %s -f mystudy%%s c:\\DICOM\\dir\n", cstr);
 	printf("  %s -o \"c:\\dir with spaces\\dir\" c:\\dicomdir\n", cstr);
 #else
-#ifdef myDisableZLib
-	if (strlen(opts.pigzname) > 0)
-		printf("  -z : gz compress images (y/o/n/3, default %c) [y=pigz, o=optimal pigz, n=no, 3=no,3D]\n", gzCh);
-	else
-		printf("  -z : gz compress images (y/o/n/3, default %c)  [y=pigz(MISSING!), o=optimal(requires pigz), n=no, 3=no,3D]\n", gzCh);
-#else
-#ifdef myDisableMiniZ
-	printf("  -z : gz compress images (y/o/i/n/3, default %c) [y=pigz, o=optimal pigz, i=internal:zlib, n=no, 3=no,3D]\n", gzCh);
-#else
-	printf("  -z : gz compress images (y/o/i/n/3, default %c) [y=pigz, o=optimal pigz, i=internal:miniz, n=no, 3=no,3D]\n", gzCh);
-#endif
-#endif
-	printf("  --big-endian : byte order (y/n/o, default o) [y=big-end, n=little-end, o=optimal/native]\n");
 	printf("  --progress : Slicer format progress information (y/n, default n)\n");
-	printf("  --ignore_trigger_times : disregard values in 0018,1060 and 0020,9153\n");
-	printf("  --terse : omit filename post-fixes (can cause overwrites)\n");
-	printf("  --version : report version\n");
-	printf("  --xml : Slicer format features\n");
 	printf(" Defaults file : %s\n", opts.optsname);
 	printf(" Examples :\n");
 	printf("  %s /Users/chris/dir\n", cstr);
@@ -155,7 +159,7 @@ void showHelp(const char *argv[], struct TDCMopts opts) {
 } // showHelp()
 
 int invalidParam(int i, const char *argv[]) {
-	if (strchr("yYnNoOhHiIjlLJBb01234", argv[i][0]))
+	if (strchr("yYnNoOhHiIjlLJBbsS01234", argv[i][0]))
 		return 0;
 
 	// if (argv[i][0] != '-') return 0;
@@ -383,7 +387,10 @@ int main(int argc, const char *argv[]) {
 				i++;
 				if (invalidParam(i, argv))
 					return 0;
-				if ((argv[i][0] == 'n') || (argv[i][0] == 'N') || (argv[i][0] == '0'))
+				if ((argv[i][0] == 'o') || (argv[i][0] == 'O')) {
+					opts.isKeepDirectionVaries = true;
+					opts.isIgnoreDerivedAnd2D = false;
+				} else if ((argv[i][0] == 'n') || (argv[i][0] == 'N') || (argv[i][0] == '0'))
 					opts.isIgnoreDerivedAnd2D = false;
 				else
 					opts.isIgnoreDerivedAnd2D = true;
@@ -443,7 +450,9 @@ int main(int argc, const char *argv[]) {
 				i++;
 				if (invalidParam(i, argv))
 					return 0;
-				if ((argv[i][0] == 'n') || (argv[i][0] == 'N') || (argv[i][0] == '0'))
+				if ((argv[i][0] == 'o') || (argv[i][0] == 'O'))
+					opts.isIgnoreIntensityScaling = true;
+				else if ((argv[i][0] == 'n') || (argv[i][0] == 'N') || (argv[i][0] == '0'))
 					opts.isPhilipsFloatNotDisplayScaling = false;
 				else
 					opts.isPhilipsFloatNotDisplayScaling = true;
@@ -531,6 +540,12 @@ int main(int argc, const char *argv[]) {
 				i++;
 				if (invalidParam(i, argv))
 					return 0;
+#ifdef myEnableZSTD
+				if ((argv[i][0] == 's') || (argv[i][0] == 'S')) {
+					opts.isGz = false;
+					opts.isZStd = true; // ZStd
+				} else
+#endif
 				if ((argv[i][0] == '3')) {
 					opts.isGz = false; // uncompressed 3D
 					opts.isSave3D = true;
@@ -547,11 +562,11 @@ int main(int argc, const char *argv[]) {
 					opts.isPipedGz = true; // pipe to pigz without saving uncompressed to disk
 			} else if ((argv[i][1] == 'f') && ((i + 1) < argc)) {
 				i++;
-				strcpy(opts.filename, argv[i]);
+				snprintf(opts.filename, sizeof(opts.filename), "%s", argv[i]);
 				isOutNameSpecified = true;
 			} else if ((argv[i][1] == 'o') && ((i + 1) < argc)) {
 				i++;
-				strcpy(opts.outdir, argv[i]);
+				snprintf(opts.outdir, sizeof(opts.outdir), "%s", argv[i]);
 			} else if ((argv[i][1] == 'n') && ((i + 1) < argc)) {
 				i++;
 				double seriesNumber = atof(argv[i]);
@@ -609,7 +624,7 @@ int main(int argc, const char *argv[]) {
 #endif
 	clock_t start = clock();
 	for (i = (lastCommandArg + 1); i < argc; i++) {
-		strcpy(opts.indir, argv[i]); // [argc-1]
+		snprintf(opts.indir, sizeof(opts.indir), "%s", argv[i]); // [argc-1]
 		int ret = nii_loadDir(&opts);
 		if (ret != EXIT_SUCCESS)
 			return ret;

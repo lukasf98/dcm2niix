@@ -1,7 +1,16 @@
-set(OPENJPEG_TAG  openjpeg-2.5)
+set(OPENJPEG_TAG  v2.5.3)
+
+# Set MSVC runtime flags only on Windows
+if(WIN32 AND MSVC)
+    set(OPENJPEG_C_FLAGS_RELEASE /MT)
+    set(OPENJPEG_C_FLAGS_DEBUG /MTd)
+else()
+    set(OPENJPEG_C_FLAGS_RELEASE "")
+    set(OPENJPEG_C_FLAGS_DEBUG "")
+endif()
 
 ExternalProject_Add(openjpeg
-    GIT_REPOSITORY "https://github.com/ningfei/openjpeg.git"
+    GIT_REPOSITORY "https://github.com/uclouvain/openjpeg.git"
     GIT_TAG "${OPENJPEG_TAG}"
     SOURCE_DIR openjpeg
     BINARY_DIR openjpeg-build
@@ -9,13 +18,24 @@ ExternalProject_Add(openjpeg
         -Wno-dev
         --no-warn-unused-cli
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_POLICY_DEFAULT_CMP0091=NEW
+        -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>
+        -DCMAKE_C_FLAGS_RELEASE=${OPENJPEG_C_FLAGS_RELEASE}
+        -DCMAKE_C_FLAGS_DEBUG=${OPENJPEG_C_FLAGS_DEBUG}
+        -DOPJ_USE_THREAD=OFF
         -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
         -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
-	    # Compiler settings
         -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-        # Install directories
+        -DBUILD_SHARED_LIBS=OFF
+        # disable optional dependencies not needed for dcm2niix
+        -DBUILD_CODEC=OFF
+        -DBUILD_JPIP=OFF
+        -DBUILD_JPWL=OFF
+        -DBUILD_VIEWER=OFF
+        -DBUILD_JAVA=OFF
+        -DBUILD_MJ2=OFF
+        -DBUILD_THIRDPARTY=OFF
         -DCMAKE_INSTALL_PREFIX:PATH=${DEP_INSTALL_DIR}
 )
-
 include(GNUInstallDirs)
-set(OpenJPEG_DIR ${DEP_INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}/cmake/${OPENJPEG_TAG})
+set(OpenJPEG_DIR ${DEP_INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}/cmake/openjpeg-2.5)

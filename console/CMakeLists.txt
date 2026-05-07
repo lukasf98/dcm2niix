@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 
 project(console)
 
+include(GNUInstallDirs)
+
 # Option Choose whether to use static runtime
 include(ucm.cmake)
 option(USE_STATIC_RUNTIME "Use static runtime" ON)
@@ -23,7 +25,9 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     add_definitions(-fno-caret-diagnostics)
     # issue867 reduce stack pressure
     # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-dead_strip -Wl,-stack_size -Wl,0x1000000")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-dead_strip")
+    if(APPLE)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-dead_strip")
+    endif()
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     # using GCC
     if(NOT (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS 7.1.0))
@@ -59,11 +63,11 @@ if(UNIX)
     if(ARM_CRC)
         # wrong answer for Apple Silicon: check_cxx_compiler_flag(-msse2 HAS_SSE2)
     else()
-	    check_cxx_compiler_flag(-msse2 HAS_SSE2)
-	    if(HAS_SSE2)
-	        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse2 -mfpmath=sse")
-	    endif()
-	endif()
+      check_cxx_compiler_flag(-msse2 HAS_SSE2)
+      if(HAS_SSE2)
+          set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse2 -mfpmath=sse")
+      endif()
+  endif()
 endif()
 
 set(PROGRAMS dcm2niix)
@@ -72,6 +76,7 @@ option(USE_TURBOJPEG "Use TurboJPEG to decode classic JPEG" OFF)
 option(USE_JASPER "Build with JPEG2000 support using Jasper" OFF)
 option(USE_OPENJPEG "Build with JPEG2000 support using OpenJPEG" OFF)
 option(USE_JPEGLS "Build with JPEG-LS support using CharLS" OFF)
+option(USE_ZSTD "Build with Zstandard compression support" OFF)
 
 option(BATCH_VERSION "Build dcm2niibatch for multiple conversions" OFF)
 
@@ -86,12 +91,14 @@ set(DCM2NIIX_SRCS
     main_console.cpp
     nii_dicom.cpp
     jpg_0XC3.cpp
-    ujpeg.cpp
     nifti1_io_core.cpp
     nii_foreign.cpp
     nii_ortho.cpp
     nii_dicom_batch.cpp)
 
+if(NOT USE_TURBOJPEG)
+    set(DCM2NIIX_SRCS ${DCM2NIIX_SRCS} ujpeg.cpp)
+endif()
 
 option(USE_JNIFTI "Build with JNIfTI support" ON)
 if(USE_JNIFTI)
@@ -101,6 +108,8 @@ endif()
 
 if(BUILD_DCM2NIIXFSLIB)
     set(DCM2NIIXFSLIB dcm2niixfs)
+    # BUILD_DCM2NIIXFSLIB and USE_TURBOJPEG are not allowed to be enabled at
+    # the same time, so ujpeg.cpp is unconditionally in this sources list:
     set(DCM2NIIXFSLIB_SRCS
         dcm2niix_fswrapper.cpp
         nii_dicom.cpp
@@ -190,16 +199,27 @@ else ()
     add_definitions(-DmyDisableOpenJPEG)
 endif()
 
+if(USE_ZSTD)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(ZSTD REQUIRED libzstd)
+    add_definitions(-DmyEnableZSTD)
+    target_include_directories(dcm2niix PRIVATE ${ZSTD_INCLUDE_DIRS})
+    target_link_libraries(dcm2niix ${ZSTD_LIBRARIES})
+endif()
+
 if(BATCH_VERSION)
     set(DCM2NIIBATCH_SRCS
         main_console_batch.cpp
         nii_dicom.cpp
         jpg_0XC3.cpp
-        ujpeg.cpp
         nifti1_io_core.cpp
         nii_foreign.cpp
         nii_ortho.cpp
         nii_dicom_batch.cpp)
+
+    if(NOT USE_TURBOJPEG)
+        set(DCM2NIIBATCH_SRCS ${DCM2NIIBATCH_SRCS} ujpeg.cpp)
+    endif()
 
     if(USE_JNIFTI)
         set(DCM2NIIBATCH_SRCS ${DCM2NIIBATCH_SRCS} cJSON.cpp base64.cpp)
@@ -242,6 +262,11 @@ if(BATCH_VERSION)
         target_link_libraries(dcm2niibatch ${OPENJPEG_LIBRARIES})
     endif()
 
+    if(USE_ZSTD)
+        target_include_directories(dcm2niibatch PRIVATE ${ZSTD_INCLUDE_DIRS})
+        target_link_libraries(dcm2niibatch ${ZSTD_LIBRARIES})
+    endif()
+
     list(APPEND PROGRAMS dcm2niibatch)
 endif()
 
@@ -259,8 +284,8 @@ if(APPLE)
     # launchctl plist ./dcm2niix
 endif()
 
-install(TARGETS ${PROGRAMS} DESTINATION bin)
+install(TARGETS ${PROGRAMS} DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 if(BUILD_DCM2NIIXFSLIB)
-    install(TARGETS ${DCM2NIIXFSLIB} DESTINATION lib)
+    install(TARGETS ${DCM2NIIXFSLIB} DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
