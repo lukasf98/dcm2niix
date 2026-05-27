@@ -8285,8 +8285,12 @@ void oldSliceTimingGE(struct TDCMsort *dcmSort,struct TDICOMdata *dcmList, struc
 
 int sliceTimingCore(struct TDCMsort *dcmSort, struct TDICOMdata *dcmList, struct nifti_1_header *hdr, int verbose, const char *filename, int nConvert, struct TDCMopts opts) {
 	int sliceDir = 0;
-	if ((hdr->dim[3] < 2) || (hdr->dim[3] > kMaxEPI3D))
-		return sliceDir;
+	if (hdr->dim[3] < 2)
+        return sliceDir;
+    if (hdr->dim[3] > kMaxEPI3D) {
+        uint64_t indx1 = (nConvert > 1) ? dcmSort[1].indx : dcmSort[0].indx;
+        return headerDcm2Nii2(dcmList[dcmSort[0].indx], dcmList[indx1], hdr, true);
+    }
 	// uint64_t indx0 = dcmSort[0].indx;
 	// uint64_t indx1 = dcmSort[1].indx;
 	struct TDICOMdata *d0 = &dcmList[dcmSort[0].indx];
